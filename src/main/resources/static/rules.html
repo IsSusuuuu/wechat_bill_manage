@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>自动填充规则 - 微信财务监控系统</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+    :root { --apple-bg: #f5f5f7; --apple-card: #ffffff; --apple-text: #1d1d1f; --apple-text-secondary: #86868b; --apple-border: #d2d2d7; --apple-blue: #007aff; --apple-blue-hover: #0051d5; --apple-shadow: 0 2px 10px rgba(0,0,0,0.06); --apple-shadow-hover: 0 4px 20px rgba(0,0,0,0.1); --apple-danger: #ff3b30; --apple-success: #34c759; --apple-warning: #ff9500; --apple-gray: #f5f5f7; }
+    * { box-sizing: border-box; }
+    html,body { margin:0; padding:0; background:var(--apple-bg); color:var(--apple-text); font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif; }
+    .app-header { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; background:rgba(255,255,255,0.8); backdrop-filter:saturate(180%) blur(20px); border-bottom:1px solid rgba(0,0,0,0.08); position:sticky; top:0; z-index:10; }
+    .app-header h1 { font-size:20px; margin:0; font-weight:600; letter-spacing:-0.3px; }
+    .nav { display:flex; gap:8px; }
+    .nav a { color:var(--apple-text-secondary); text-decoration:none; padding:8px 12px; border-radius:8px; border:1px solid transparent; transition:all 0.2s ease; font-weight:400; }
+    .nav a:hover { background:rgba(0,0,0,0.04); color:var(--apple-text); }
+    .nav a.active { color:var(--apple-blue); font-weight:500; background:rgba(0,122,255,0.08); }
+    .container { max-width:1200px; margin:32px auto; padding:0 24px; }
+    .card { background:var(--apple-card); border:1px solid rgba(0,0,0,0.04); border-radius:16px; padding:24px; margin-bottom:24px; box-shadow:var(--apple-shadow); transition:all 0.3s ease; }
+    .card:hover { box-shadow:var(--apple-shadow-hover); }
+    .card h2 { margin:0 0 16px 0; font-size:20px; font-weight:600; letter-spacing:-0.3px; }
+    .btn { display:inline-block; color:white; background:var(--apple-blue); padding:10px 20px; border-radius:10px; text-decoration:none; font-weight:500; transition:all 0.2s ease; border:none; cursor:pointer; font-size:14px; }
+    .btn:hover { background:var(--apple-blue-hover); transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,122,255,0.3); }
+    .btn:active { transform:translateY(0); }
+    .toolbar { display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+    .toolbar input,.toolbar select { background:var(--apple-card); color:var(--apple-text); border:1px solid var(--apple-border); padding:10px 16px; border-radius:10px; font-size:14px; transition:all 0.2s ease; }
+    .toolbar input:focus,.toolbar select:focus { outline:none; border-color:var(--apple-blue); box-shadow:0 0 0 3px rgba(0,122,255,0.1); }
+    .toolbar .btn-secondary { color:var(--apple-text); background:var(--apple-card); border:1px solid var(--apple-border); }
+    .toolbar .btn-secondary:hover { background:var(--apple-gray); }
+    .toolbar .btn-secondary:disabled,.toolbar .btn-danger:disabled { opacity:0.5; cursor:not-allowed; transform:none !important; }
+    .toolbar .btn-danger { color:#fff; background:var(--apple-danger); border:1px solid var(--apple-danger); }
+    .toolbar .btn-danger:hover { background:#d63031; }
+    table { width:100%; border-collapse:collapse; background:var(--apple-card); border-radius:12px; overflow:hidden; }
+    th,td { text-align:left; border-bottom:1px solid var(--apple-border); padding:12px 16px; }
+    th { color:var(--apple-text-secondary); font-weight:600; font-size:13px; text-transform:none; letter-spacing:-0.1px; background:var(--apple-gray); }
+    tbody tr:hover { background:rgba(0,0,0,0.02); }
+    .dialog { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.4); backdrop-filter:blur(4px); }
+    .dialog.open { display:flex; }
+    .dialog-panel { width:560px; max-width:92vw; background:var(--apple-card); border:1px solid rgba(0,0,0,0.04); border-radius:20px; padding:24px; box-shadow:0 10px 40px rgba(0,0,0,0.15); }
+    .dialog-title { margin:0 0 20px 0; font-size:20px; font-weight:600; letter-spacing:-0.3px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .form-grid label { display:flex; flex-direction:column; gap:8px; font-size:14px; color:var(--apple-text-secondary); font-weight:500; }
+    .form-grid input,.form-grid select,.form-grid textarea { background:var(--apple-card); color:var(--apple-text); border:1px solid var(--apple-border); padding:10px 14px; border-radius:10px; width:100%; font-size:14px; transition:all 0.2s ease; }
+    .form-grid input:focus,.form-grid select:focus,.form-grid textarea:focus { outline:none; border-color:var(--apple-blue); box-shadow:0 0 0 3px rgba(0,122,255,0.1); }
+    .form-hint { font-size:12px; color:var(--apple-text-secondary); margin-top:4px; }
+    .dialog-actions { display:flex; justify-content:flex-end; gap:12px; margin-top:24px; }
+    .action-buttons { display:flex; gap:6px; flex-wrap:wrap; }
+    .action-btn { padding:6px 12px; border-radius:6px; font-size:12px; font-weight:500; border:none; cursor:pointer; transition:all 0.2s ease; text-decoration:none; display:inline-block; }
+    .action-btn-edit { background:var(--apple-blue); color:white; }
+    .action-btn-edit:hover { background:var(--apple-blue-hover); transform:translateY(-1px); }
+    .action-btn-test { background:var(--apple-success); color:white; }
+    .action-btn-test:hover { background:#28a745; transform:translateY(-1px); }
+    .action-btn-toggle { background:#6c757d; color:white; }
+    .action-btn-toggle:hover { background:#5a6268; transform:translateY(-1px); }
+    .action-btn-delete { background:var(--apple-danger); color:white; }
+    .action-btn-delete:hover { background:#d63031; transform:translateY(-1px); }
+    .pagination { display:flex; justify-content:center; align-items:center; gap:16px; margin-top:24px; padding:16px 0; }
+    .pagination button { padding:8px 16px; font-size:14px; }
+    #page-info { color:var(--apple-text-secondary); font-size:14px; }
+    .btn-sm { padding:8px 16px; font-size:14px; }
+    @media (max-width:768px) { .form-grid { grid-template-columns:1fr; } .container { margin:20px auto; padding:0 16px; } .card { padding:20px; border-radius:12px; } .toolbar { flex-direction:column; align-items:stretch; } .toolbar > * { width:100%; } table { font-size:13px; } .app-header { flex-direction:column; align-items:flex-start; gap:12px; } .nav { width:100%; flex-wrap:wrap; } .action-buttons { flex-direction:column; } .action-btn { width:100%; text-align:center; } }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <h1>自动填充规则</h1>
+        <nav class="nav">
+            <a href="/index.html">首页</a>
+            <a href="/categories.html">收支分类</a>
+            <a href="/rules.html" class="active">自动填充规则</a>
+            <a href="/import.html">账单导入</a>
+            <a href="/import-sessions.html">导入批次</a>
+            <a href="/reports.html">分析报表</a>
+        </nav>
+    </header>
+    <main class="container">
+        <section class="card">
+            <div class="toolbar">
+                <button class="btn" id="btn-new">新增规则</button>
+                <button class="btn-secondary" id="btn-batch-enable" disabled>批量启用</button>
+                <button class="btn-secondary" id="btn-batch-disable" disabled>批量禁用</button>
+                <button class="btn-danger" id="btn-batch-delete" disabled>批量删除</button>
+                <button class="btn-secondary" id="btn-export">导出规则</button>
+                <input type="text" id="q" placeholder="搜索关键字...">
+                <select id="page-size">
+                    <option value="10">10条/页</option>
+                    <option value="20" selected>20条/页</option>
+                    <option value="50">50条/页</option>
+                </select>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="select-all"></th>
+                        <th>ID</th>
+                        <th>规则名称</th>
+                        <th>关键词</th>
+                        <th>匹配类型</th>
+                        <th>分类</th>
+                        <th>优先级</th>
+                        <th>匹配次数</th>
+                        <th>成功率</th>
+                        <th>启用</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+            
+            <!-- 分页控件 -->
+            <div class="pagination" id="pagination">
+                <button class="btn btn-sm" id="prev-page" disabled>上一页</button>
+                <span id="page-info">第 1 页 / 共 0 页</span>
+                <button class="btn btn-sm" id="next-page" disabled>下一页</button>
+            </div>
+        </section>
+    </main>
+
+    <div class="dialog" id="dlg-edit">
+        <div class="dialog-panel">
+            <h3 class="dialog-title" id="dlg-title">新增规则</h3>
+            <form id="form-edit">
+                <input type="hidden" name="id">
+                <div class="form-grid">
+                    <label>规则名称 *
+                        <input name="ruleName" required maxlength="100" placeholder="请输入规则名称">
+                        <small class="form-hint">规则的显示名称</small>
+                    </label>
+                    <label>规则描述
+                        <input name="description" maxlength="200" placeholder="请输入规则描述">
+                        <small class="form-hint">规则的详细说明</small>
+                    </label>
+                    <label>匹配字段
+                        <select name="matchFields" required>
+                            <option value="counterparty,product,remark">全部字段</option>
+                            <option value="counterparty">交易对方</option>
+                            <option value="product">商品说明</option>
+                            <option value="remark">备注</option>
+                        </select>
+                        <small class="form-hint">规则匹配的字段范围</small>
+                    </label>
+                    <label>匹配类型 *
+                        <select name="matchType" required>
+                            <option value="1">包含</option>
+                            <option value="2">完全等于</option>
+                            <option value="3">正则表达式</option>
+                            <option value="4">前缀匹配</option>
+                            <option value="5">后缀匹配</option>
+                        </select>
+                    </label>
+                    <label>关键词 *
+                        <input name="keyword" required maxlength="200" placeholder="请输入匹配关键词">
+                        <small class="form-hint">用于匹配的关键词</small>
+                    </label>
+                    <label>正则表达式
+                        <input name="regexPattern" maxlength="500" placeholder="请输入正则表达式">
+                        <small class="form-hint">当匹配类型为"正则表达式"时必填</small>
+                    </label>
+                    <label>排除关键词
+                        <input name="excludeKeyword" maxlength="200" placeholder="请输入排除关键词">
+                        <small class="form-hint">包含此关键词时不匹配</small>
+                    </label>
+                    <label>一级分类 *
+                        <select name="firstCategoryId" id="firstCategoryId" required>
+                            <option value="">请选择一级分类</option>
+                        </select>
+                    </label>
+                    <label>二级分类
+                        <select name="secondCategoryId" id="secondCategoryId">
+                            <option value="">请选择二级分类</option>
+                        </select>
+                    </label>
+                    <label>优先级
+                        <input type="number" name="priority" value="100" min="1" max="999">
+                        <small class="form-hint">数字越小优先级越高</small>
+                    </label>
+                    <label>是否启用
+                        <select name="isEnabled">
+                            <option value="1">启用</option>
+                            <option value="0">禁用</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="dialog-actions">
+                    <button type="button" class="btn-secondary" onclick="closeDialog('dlg-edit')">取消</button>
+                    <button class="btn" type="submit">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/utils.js"></script>
+    <script>
+    const api = {
+        rules: '/api/rules',
+        categories: '/api/categories'
+    };
+    const state = { 
+        list: [], 
+        categories: [], 
+        selectedIds: [],
+        currentPage: 1,
+        pageSize: 20,
+        total: 0
+    };
+
+    function renderSelects() {
+        // 渲染一级分类
+        const firstCatOpts = ['<option value="">请选择一级分类</option>']
+            .concat(state.categories.filter(c => c.level === 1)
+                .map(c => `<option value="${c.id}">${c.name} (${c.categoryType})</option>`)).join('');
+        document.getElementById('firstCategoryId').innerHTML = firstCatOpts;
+        
+        // 渲染二级分类
+        const secondCatOpts = ['<option value="">请选择二级分类</option>']
+            .concat(state.categories.filter(c => c.level === 2)
+                .map(c => `<option value="${c.id}">${c.name} (${c.categoryType})</option>`)).join('');
+        document.getElementById('secondCategoryId').innerHTML = secondCatOpts;
+    }
+    
+    function getMatchTypeName(matchType) {
+        const types = {
+            1: '包含',
+            2: '完全等于',
+            3: '正则表达式',
+            4: '前缀匹配',
+            5: '后缀匹配'
+        };
+        return types[matchType] || '未知';
+    }
+
+    function render() {
+        const tbody = document.getElementById('tbody');
+        const rows = state.list.map(x => {
+            const firstCategory = state.categories.find(c => c.id === x.firstCategoryId);
+            const secondCategory = state.categories.find(c => c.id === x.secondCategoryId);
+            const categoryName = firstCategory ? 
+                (secondCategory ? `${firstCategory.name}-${secondCategory.name}` : firstCategory.name) : 
+                '未知分类';
+            
+            const isSelected = state.selectedIds.includes(x.id);
+            return `
+                <tr>
+                    <td><input type="checkbox" class="row-checkbox" data-id="${x.id}" ${isSelected ? 'checked' : ''}></td>
+                    <td>${x.id||''}</td>
+                    <td>${x.ruleName||''}</td>
+                    <td>${x.keyword||''}</td>
+                    <td>${getMatchTypeName(x.matchType)}</td>
+                    <td>${categoryName}</td>
+                    <td>${x.priority||''}</td>
+                    <td>${x.matchCount||0}</td>
+                    <td>${(x.successRate||0).toFixed(1)}%</td>
+                    <td>${x.isEnabled?'是':'否'}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="#" data-id="${x.id}" class="action-btn action-btn-edit action-edit">编辑</a>
+                            <a href="#" data-id="${x.id}" class="action-btn action-btn-test action-test">测试</a>
+                            <a href="#" data-id="${x.id}" class="action-btn action-btn-toggle action-toggle">${x.isEnabled ? '禁用' : '启用'}</a>
+                            <a href="#" data-id="${x.id}" class="action-btn action-btn-delete action-del">删除</a>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        tbody.innerHTML = rows || '<tr><td colspan="11" class="muted">暂无数据</td></tr>';
+        qsa('.action-edit').forEach(a => a.addEventListener('click', onEditClick));
+        qsa('.action-test').forEach(a => a.addEventListener('click', onTestClick));
+        qsa('.action-toggle').forEach(a => a.addEventListener('click', onToggleClick));
+        qsa('.action-del').forEach(a => a.addEventListener('click', onDelClick));
+        qsa('.row-checkbox').forEach(cb => cb.addEventListener('change', onCheckboxChange));
+        
+        // 更新分页信息
+        updatePagination();
+    }
+    
+    function updatePagination() {
+        const totalPages = Math.ceil(state.total / state.pageSize);
+        document.getElementById('page-info').textContent = `第 ${state.currentPage} 页 / 共 ${totalPages} 页`;
+        document.getElementById('prev-page').disabled = state.currentPage <= 1;
+        document.getElementById('next-page').disabled = state.currentPage >= totalPages || totalPages === 0;
+    }
+
+    async function loadAll() {
+        try {
+            // 加载所有分类用于渲染分类选择框
+            const categoriesResult = await fetchJson(api.categories);
+            if (categoriesResult.code === 1) {
+                state.categories = Array.isArray(categoriesResult.data) ? categoriesResult.data : [];
+            } else {
+                console.error('加载分类失败:', categoriesResult.msg);
+                state.categories = [];
+            }
+            
+            // 分页加载规则
+            const params = {
+                page: state.currentPage,
+                pageSize: state.pageSize,
+                keyword: document.getElementById('q').value.trim() || ''
+            };
+            
+            const queryStr = Object.entries(params)
+                .filter(([k, v]) => v !== '')
+                .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+                .join('&');
+            
+            const rulesResult = await fetchJson(`${api.rules}/page?${queryStr}`);
+            if (rulesResult.code === 1) {
+                state.list = Array.isArray(rulesResult.data.records) ? rulesResult.data.records : [];
+                state.total = rulesResult.data.total || 0;
+            } else {
+                console.error('加载规则失败:', rulesResult.msg);
+                state.list = [];
+                state.total = 0;
+            }
+            
+            renderSelects();
+            render();
+        } catch (error) {
+            console.error('加载数据失败:', error);
+            toast('加载数据失败：' + error.message);
+        }
+    }
+
+    function onEditClick(e) {
+        e.preventDefault();
+        const id = Number(e.currentTarget.getAttribute('data-id'));
+        const item = state.list.find(x => x.id === id);
+        if (!item) {
+            toast('规则不存在');
+            return;
+        }
+        
+        const form = document.getElementById('form-edit');
+        setFormValues(form, {
+            id: item.id,
+            ruleName: item.ruleName || '',
+            description: item.description || '',
+            matchFields: item.matchFields || 'counterparty,product,remark',
+            matchType: item.matchType || 1,
+            keyword: item.keyword || '',
+            regexPattern: item.regexPattern || '',
+            excludeKeyword: item.excludeKeyword || '',
+            firstCategoryId: item.firstCategoryId || '',
+            secondCategoryId: item.secondCategoryId || '',
+            priority: item.priority || 100,
+            isEnabled: item.isEnabled ? '1' : '0'
+        });
+        document.getElementById('dlg-title').textContent = '编辑规则';
+        openDialog('dlg-edit');
+    }
+    
+    function onTestClick(e) {
+        e.preventDefault();
+        const id = Number(e.currentTarget.getAttribute('data-id'));
+        const item = state.list.find(x => x.id === id);
+        if (!item) {
+            toast('规则不存在');
+            return;
+        }
+        
+        const testText = prompt('请输入测试文本:', '美团外卖订单');
+        if (testText === null) return;
+        
+        // 调用测试接口
+        fetchJson(`${api.rules}/${id}/test`, {
+            method: 'POST',
+            body: JSON.stringify({ text: testText })
+        })
+        .then(result => {
+            if (result.code === 1) {
+                const data = result.data;
+                const message = `规则: ${data.ruleName}\n` +
+                              `测试文本: ${data.testText}\n` +
+                              `匹配结果: ${data.isMatch ? '匹配' : '不匹配'}\n` +
+                              `匹配类型: ${data.matchType}\n` +
+                              `关键词: ${data.keyword}`;
+                if (data.isMatch) {
+                    message += `\n分类: ${data.categoryPath}`;
+                }
+                alert(message);
+            } else {
+                toast('测试失败：' + result.msg);
+            }
+        })
+        .catch(err => {
+            console.error('测试规则失败:', err);
+            toast('测试失败：' + err.message);
+        });
+    }
+
+    function onToggleClick(e) {
+        e.preventDefault();
+        const id = Number(e.currentTarget.getAttribute('data-id'));
+        const item = state.list.find(x => x.id === id);
+        if (!item) {
+            toast('规则不存在');
+            return;
+        }
+        
+        const action = item.isEnabled ? '禁用' : '启用';
+        if (!confirm(`确认${action}规则"${item.ruleName}"？`)) return;
+        
+        fetchJson(`${api.rules}/${id}/toggle`, { method: 'PUT' })
+            .then(result => {
+                if (result.code === 1) {
+                    toast(`${action}成功`);
+                    loadAll();
+                } else {
+                    toast(`${action}失败：` + result.msg);
+                }
+            })
+            .catch(err => {
+                console.error(`${action}规则失败:`, err);
+                toast(`${action}失败：` + err.message);
+            });
+    }
+
+    function onDelClick(e) {
+        e.preventDefault();
+        const id = Number(e.currentTarget.getAttribute('data-id'));
+        const item = state.list.find(x => x.id === id);
+        if (!item) {
+            toast('规则不存在');
+            return;
+        }
+        
+        if (!confirm(`确认删除规则"${item.ruleName}"？此操作不可恢复。`)) return;
+        
+        fetchJson(`${api.rules}/${id}`, { method: 'DELETE' })
+            .then(result => {
+                if (result.code === 1) {
+                    toast('删除成功');
+                    loadAll();
+                } else {
+                    toast('删除失败：' + result.msg);
+                }
+            })
+            .catch(err => {
+                console.error('删除规则失败:', err);
+                toast('删除失败：' + err.message);
+            });
+    }
+
+    function onCheckboxChange(e) {
+        const id = Number(e.target.getAttribute('data-id'));
+        if (e.target.checked) {
+            if (!state.selectedIds.includes(id)) {
+                state.selectedIds.push(id);
+            }
+        } else {
+            state.selectedIds = state.selectedIds.filter(x => x !== id);
+        }
+        updateBatchButtons();
+    }
+
+    function updateBatchButtons() {
+        const hasSelection = state.selectedIds.length > 0;
+        document.getElementById('btn-batch-enable').disabled = !hasSelection;
+        document.getElementById('btn-batch-disable').disabled = !hasSelection;
+        document.getElementById('btn-batch-delete').disabled = !hasSelection;
+        
+        // 更新全选状态
+        const allCheckboxes = qsa('.row-checkbox');
+        const checkedCheckboxes = qsa('.row-checkbox:checked');
+        document.getElementById('select-all').checked = allCheckboxes.length > 0 && allCheckboxes.length === checkedCheckboxes.length;
+    }
+
+    document.getElementById('btn-new').addEventListener('click', () => {
+        const form = document.getElementById('form-edit');
+        form.reset();
+        setFormValues(form, { 
+            matchFields: 'counterparty,product,remark', 
+            matchType: 1, 
+            priority: 100, 
+            isEnabled: '1' 
+        });
+        document.getElementById('dlg-title').textContent = '新增规则';
+        openDialog('dlg-edit');
+    });
+
+    document.getElementById('q').addEventListener('input', render);
+
+    // 全选功能
+    document.getElementById('select-all').addEventListener('change', (e) => {
+        const isChecked = e.target.checked;
+        qsa('.row-checkbox').forEach(cb => {
+            cb.checked = isChecked;
+            const id = Number(cb.getAttribute('data-id'));
+            if (isChecked) {
+                if (!state.selectedIds.includes(id)) {
+                    state.selectedIds.push(id);
+                }
+            } else {
+                state.selectedIds = state.selectedIds.filter(x => x !== id);
+            }
+        });
+        updateBatchButtons();
+    });
+
+    // 批量启用
+    document.getElementById('btn-batch-enable').addEventListener('click', () => {
+        if (state.selectedIds.length === 0) {
+            toast('请选择要启用的规则');
+            return;
+        }
+        
+        if (!confirm(`确认启用选中的 ${state.selectedIds.length} 个规则？`)) return;
+        
+        fetchJson(`${api.rules}/batch/toggle`, {
+            method: 'PUT',
+            body: JSON.stringify({ ids: state.selectedIds, enabled: 1 })
+        })
+        .then(result => {
+            if (result.code === 1) {
+                const data = result.data;
+                toast(`批量启用完成：成功 ${data.success} 个，失败 ${data.fail} 个`);
+                state.selectedIds = [];
+                loadAll();
+            } else {
+                toast('批量启用失败：' + result.msg);
+            }
+        })
+        .catch(err => {
+            console.error('批量启用失败:', err);
+            toast('批量启用失败：' + err.message);
+        });
+    });
+
+    // 批量禁用
+    document.getElementById('btn-batch-disable').addEventListener('click', () => {
+        if (state.selectedIds.length === 0) {
+            toast('请选择要禁用的规则');
+            return;
+        }
+        
+        if (!confirm(`确认禁用选中的 ${state.selectedIds.length} 个规则？`)) return;
+        
+        fetchJson(`${api.rules}/batch/toggle`, {
+            method: 'PUT',
+            body: JSON.stringify({ ids: state.selectedIds, enabled: 0 })
+        })
+        .then(result => {
+            if (result.code === 1) {
+                const data = result.data;
+                toast(`批量禁用完成：成功 ${data.success} 个，失败 ${data.fail} 个`);
+                state.selectedIds = [];
+                loadAll();
+            } else {
+                toast('批量禁用失败：' + result.msg);
+            }
+        })
+        .catch(err => {
+            console.error('批量禁用失败:', err);
+            toast('批量禁用失败：' + err.message);
+        });
+    });
+
+    // 批量删除
+    document.getElementById('btn-batch-delete').addEventListener('click', () => {
+        if (state.selectedIds.length === 0) {
+            toast('请选择要删除的规则');
+            return;
+        }
+        
+        if (!confirm(`确认删除选中的 ${state.selectedIds.length} 个规则？此操作不可恢复。`)) return;
+        
+        fetchJson(`${api.rules}/batch`, {
+            method: 'DELETE',
+            body: JSON.stringify(state.selectedIds)
+        })
+        .then(result => {
+            if (result.code === 1) {
+                const data = result.data;
+                toast(`批量删除完成：成功 ${data.success} 个，失败 ${data.fail} 个`);
+                state.selectedIds = [];
+                loadAll();
+            } else {
+                toast('批量删除失败：' + result.msg);
+            }
+        })
+        .catch(err => {
+            console.error('批量删除失败:', err);
+            toast('批量删除失败：' + err.message);
+        });
+    });
+
+    // 导出规则
+    document.getElementById('btn-export').addEventListener('click', () => {
+        const format = prompt('请选择导出格式 (json/csv):', 'json');
+        if (!format || !['json', 'csv'].includes(format.toLowerCase())) {
+            toast('请选择有效的导出格式');
+            return;
+        }
+        
+        fetchJson(`${api.rules}/export?format=${format.toLowerCase()}`)
+        .then(result => {
+            if (result.code === 1) {
+                // 创建下载链接
+                const blob = new Blob([result.data], { 
+                    type: format.toLowerCase() === 'json' ? 'application/json' : 'text/csv' 
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `rules.${format.toLowerCase()}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                toast('导出成功');
+            } else {
+                toast('导出失败：' + result.msg);
+            }
+        })
+        .catch(err => {
+            console.error('导出失败:', err);
+            toast('导出失败：' + err.message);
+        });
+    });
+
+    document.getElementById('form-edit').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const data = getFormValues(e.currentTarget);
+        
+        // 前端验证
+        if (!data.ruleName || data.ruleName.trim() === '') {
+            toast('请输入规则名称');
+            return;
+        }
+        
+        if (!data.keyword || data.keyword.trim() === '') {
+            toast('请输入关键词');
+            return;
+        }
+        
+        if (!data.firstCategoryId) {
+            toast('请选择一级分类');
+            return;
+        }
+        
+        if (data.matchType == 3 && (!data.regexPattern || data.regexPattern.trim() === '')) {
+            toast('正则匹配类型必须提供正则表达式');
+            return;
+        }
+        
+        const id = data.id ? Number(data.id) : null;
+        const payload = {
+            ruleName: data.ruleName.trim(),
+            description: data.description ? data.description.trim() : null,
+            matchFields: data.matchFields,
+            matchType: Number(data.matchType),
+            keyword: data.keyword.trim(),
+            regexPattern: data.regexPattern ? data.regexPattern.trim() : null,
+            excludeKeyword: data.excludeKeyword ? data.excludeKeyword.trim() : null,
+            firstCategoryId: Number(data.firstCategoryId),
+            secondCategoryId: data.secondCategoryId ? Number(data.secondCategoryId) : null,
+            priority: Number(data.priority || 100),
+            isEnabled: Number(data.isEnabled || 1)
+        };
+        
+        const req = id
+            ? fetchJson(`${api.rules}/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
+            : fetchJson(api.rules, { method: 'POST', body: JSON.stringify(payload) });
+            
+        req.then(result => {
+            if (result.code === 1) {
+                toast('保存成功');
+                closeDialog('dlg-edit');
+                loadAll();
+            } else {
+                toast('保存失败：' + result.msg);
+            }
+        })
+        .catch(err => {
+            console.error('保存规则失败:', err);
+            toast('保存失败：' + err.message);
+        });
+    });
+
+    // 搜索事件
+    let searchTimeout;
+    document.getElementById('q').addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            state.currentPage = 1; // 重置到第一页
+            state.selectedIds = []; // 清空选择
+            loadAll();
+        }, 500); // 防抖500ms
+    });
+    
+    // 分页大小改变
+    document.getElementById('page-size').addEventListener('change', function() {
+        state.pageSize = Number(this.value);
+        state.currentPage = 1; // 重置到第一页
+        state.selectedIds = []; // 清空选择
+        loadAll();
+    });
+    
+    // 上一页/下一页
+    document.getElementById('prev-page').addEventListener('click', function() {
+        if (state.currentPage > 1) {
+            state.currentPage--;
+            state.selectedIds = []; // 清空选择
+            loadAll();
+        }
+    });
+    
+    document.getElementById('next-page').addEventListener('click', function() {
+        const totalPages = Math.ceil(state.total / state.pageSize);
+        if (state.currentPage < totalPages) {
+            state.currentPage++;
+            state.selectedIds = []; // 清空选择
+            loadAll();
+        }
+    });
+
+    loadAll();
+    </script>
+</body>
+</html>
+

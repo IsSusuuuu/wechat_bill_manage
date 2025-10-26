@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>微信财务监控系统 - 控制台</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+    :root { --apple-bg: #f5f5f7; --apple-card: #ffffff; --apple-text: #1d1d1f; --apple-text-secondary: #86868b; --apple-border: #d2d2d7; --apple-blue: #007aff; --apple-blue-hover: #0051d5; --apple-shadow: 0 2px 10px rgba(0,0,0,0.06); --apple-shadow-hover: 0 4px 20px rgba(0,0,0,0.1); --apple-danger: #ff3b30; --apple-success: #34c759; --apple-warning: #ff9500; --apple-gray: #f5f5f7; --bg: #f5f5f7; --panel: #ffffff; --text: #1d1d1f; --muted: #86868b; --brand: #007aff; --brand-2: #0051d5; --danger: #ff3b30; --ok: #34c759; --border: #d2d2d7; }
+    * { box-sizing: border-box; }
+    html,body { margin:0; padding:0; background:var(--apple-bg); color:var(--apple-text); font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif; }
+    .app-header { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; background:rgba(255,255,255,0.8); backdrop-filter:saturate(180%) blur(20px); border-bottom:1px solid rgba(0,0,0,0.08); position:sticky; top:0; z-index:10; }
+    .app-header h1 { font-size:20px; margin:0; font-weight:600; letter-spacing:-0.3px; }
+    .nav { display:flex; gap:8px; }
+    .nav a { color:var(--apple-text-secondary); text-decoration:none; padding:8px 12px; border-radius:8px; border:1px solid transparent; transition:all 0.2s ease; font-weight:400; }
+    .nav a:hover { background:rgba(0,0,0,0.04); color:var(--apple-text); }
+    .nav a.active { color:var(--apple-blue); font-weight:500; background:rgba(0,122,255,0.08); }
+    .container { max-width:1200px; margin:32px auto; padding:0 24px; }
+    .card { background:var(--apple-card); border:1px solid rgba(0,0,0,0.04); border-radius:16px; padding:24px; margin-bottom:24px; box-shadow:var(--apple-shadow); transition:all 0.3s ease; }
+    .card:hover { box-shadow:var(--apple-shadow-hover); }
+    .card h2 { margin:0 0 16px 0; font-size:20px; font-weight:600; letter-spacing:-0.3px; }
+    #summary { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .kpi { background:var(--apple-card); border:1px solid var(--apple-border); border-radius:12px; padding:20px; transition:all 0.2s ease; }
+    .kpi:hover { transform:translateY(-2px); box-shadow:var(--apple-shadow); }
+    .kpi-title { color:var(--apple-text-secondary); font-size:14px; font-weight:500; margin-bottom:8px; }
+    .kpi-value { font-size:28px; font-weight:700; color:var(--apple-text); letter-spacing:-0.5px; }
+    .quick-links { display:flex; gap:12px; flex-wrap:wrap; }
+    .btn { display:inline-block; color:white; background:var(--apple-blue); padding:10px 20px; border-radius:10px; text-decoration:none; font-weight:500; transition:all 0.2s ease; border:none; cursor:pointer; font-size:14px; }
+    .btn:hover { background:var(--apple-blue-hover); transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,122,255,0.3); }
+    .btn:active { transform:translateY(0); }
+    .toolbar { display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+    .toolbar input,.toolbar select { background:var(--apple-card); color:var(--apple-text); border:1px solid var(--apple-border); padding:10px 16px; border-radius:10px; font-size:14px; transition:all 0.2s ease; }
+    .toolbar input:focus,.toolbar select:focus { outline:none; border-color:var(--apple-blue); box-shadow:0 0 0 3px rgba(0,122,255,0.1); }
+    .toolbar .btn-secondary { color:var(--apple-text); background:var(--apple-card); border:1px solid var(--apple-border); }
+    .toolbar .btn-secondary:hover { background:var(--apple-gray); }
+    .toolbar .btn-secondary:disabled,.toolbar .btn-danger:disabled { opacity:0.5; cursor:not-allowed; transform:none !important; }
+    .toolbar .btn-danger { color:#fff; background:var(--apple-danger); border:1px solid var(--apple-danger); }
+    .toolbar .btn-danger:hover { background:#d63031; }
+    table { width:100%; border-collapse:collapse; background:var(--apple-card); border-radius:12px; overflow:hidden; }
+    th,td { text-align:left; border-bottom:1px solid var(--apple-border); padding:12px 16px; }
+    th { color:var(--apple-text-secondary); font-weight:600; font-size:13px; text-transform:none; letter-spacing:-0.1px; background:var(--apple-gray); }
+    tbody tr:hover { background:rgba(0,0,0,0.02); }
+    tbody tr:last-child td { border-bottom:none; }
+    .dialog { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.4); backdrop-filter:blur(4px); }
+    .dialog.open { display:flex; }
+    .dialog-panel { width:560px; max-width:92vw; background:var(--apple-card); border:1px solid rgba(0,0,0,0.04); border-radius:20px; padding:24px; box-shadow:0 10px 40px rgba(0,0,0,0.15); }
+    .dialog-title { margin:0 0 20px 0; font-size:20px; font-weight:600; letter-spacing:-0.3px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .form-grid label { display:flex; flex-direction:column; gap:8px; font-size:14px; color:var(--apple-text-secondary); font-weight:500; }
+    .form-grid input,.form-grid select,.form-grid textarea { background:var(--apple-card); color:var(--apple-text); border:1px solid var(--apple-border); padding:10px 14px; border-radius:10px; width:100%; font-size:14px; transition:all 0.2s ease; }
+    .form-grid input:focus,.form-grid select:focus,.form-grid textarea:focus { outline:none; border-color:var(--apple-blue); box-shadow:0 0 0 3px rgba(0,122,255,0.1); }
+    .form-hint { font-size:12px; color:var(--apple-text-secondary); margin-top:4px; }
+    .dialog-actions { display:flex; justify-content:flex-end; gap:12px; margin-top:24px; }
+    .danger { background:rgba(255,59,48,0.1); color:var(--apple-danger); border:1px solid rgba(255,59,48,0.2); padding:8px 12px; border-radius:8px; }
+    .muted { color:var(--apple-text-secondary); }
+    .pagination { display:flex; justify-content:center; align-items:center; gap:16px; margin-top:24px; padding:16px 0; }
+    .pagination button { padding:8px 16px; font-size:14px; }
+    #page-info { color:var(--apple-text-secondary); font-size:14px; }
+    @media (max-width:768px) { #summary { grid-template-columns:1fr; } .form-grid { grid-template-columns:1fr; } .container { margin:20px auto; padding:0 16px; } .card { padding:20px; border-radius:12px; } .toolbar { flex-direction:column; align-items:stretch; } .toolbar > * { width:100%; } table { font-size:13px; } .kpi { min-width:120px; } .app-header { flex-direction:column; align-items:flex-start; gap:12px; } .nav { width:100%; flex-wrap:wrap; } }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <h1>微信财务监控系统</h1>
+        <nav class="nav">
+            <a href="/index.html" class="active">首页</a>
+            <a href="/categories.html">收支分类</a>
+            <a href="/rules.html">自动填充规则</a>
+            <a href="/import.html">账单导入</a>
+            <a href="/import-sessions.html">导入批次</a>
+            <a href="/reports.html">分析报表</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <h2>概览</h2>
+            <div id="summary">
+                <div class="kpi"><div class="kpi-title">本月收入</div><div class="kpi-value" id="kpi-income">-</div></div>
+                <div class="kpi"><div class="kpi-title">本月支出</div><div class="kpi-value" id="kpi-expense">-</div></div>
+                <div class="kpi"><div class="kpi-title">本月净额</div><div class="kpi-value" id="kpi-net">-</div></div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>快捷入口</h2>
+            <div class="quick-links">
+                <a class="btn" href="/categories.html#new">新增分类</a>
+                <a class="btn" href="/rules.html#new">新增规则</a>
+                <a class="btn" href="/import.html">导入微信账单</a>
+                <a class="btn" href="/import-sessions.html">导入批次管理</a>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>全部账单</h2>
+            <div class="toolbar">
+                <!-- 筛选条件 -->
+                <select id="q-type">
+                    <option value="">类型</option>
+                    <option value="支出">支出</option>
+                    <option value="收入">收入</option>
+                    <option value="/">转账</option>
+                </select>
+                <input type="date" id="q-from">
+                <input type="date" id="q-to">
+                <input type="text" id="q-text" placeholder="商户/备注">
+                <select id="q-category">
+                    <option value="">全部分类</option>
+                </select>
+
+                <!-- 分页相关控件 -->
+                <select id="page-size">
+                    <option value="10">10条/页</option>
+                    <option value="20">20条/页</option>
+                    <option value="50">50条/页</option>
+                </select>
+                <button class="btn btn-secondary" id="btn-refresh">查询</button>
+            </div>
+
+            <!-- 账单表格 -->
+            <table>
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>交易类型</th>
+                        <th>分类</th>
+                        <th>金额</th>
+                        <th>交易对方</th>
+                        <th>备注</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-all"></tbody>
+            </table>
+
+            <!-- 分页控件 -->
+            <div class="pagination" id="pagination">
+                <button class="btn btn-sm" id="prev-page" disabled>上一页</button>
+                <span id="page-info">第 1 页 / 共 0 页</span>
+                <button class="btn btn-sm" id="next-page" disabled>下一页</button>
+            </div>
+        </section>
+    </main>
+
+    <script src="/utils.js"></script>
+    <script>
+    (function() {
+        // 加载本月汇总数据
+        fetchJson('/api/reports/monthly/summary/current')
+            .then(result => {
+                // 处理Result格式：验证code并提取data
+                if (result.code !== 1) {
+                    console.error('获取本月汇总数据失败:', result.msg || '未知错误');
+                    return;
+                }
+                const data = result.data;
+                document.getElementById('kpi-income').textContent = toCurrency(data.incomeAmount || 0);
+                document.getElementById('kpi-expense').textContent = toCurrency(data.expenseAmount || 0);
+                document.getElementById('kpi-net').textContent = toCurrency((data.netAmount || 0));
+            })
+            .catch(err => {
+                console.error('获取本月汇总数据异常:', err);
+                // 如果本月汇总API不存在，尝试使用今日汇总作为备选
+                console.log('尝试使用今日汇总作为备选...');
+                fetchJson('/api/reports/daily/summary/today')
+                    .then(result => {
+                        if (result.code === 1) {
+                            const data = result.data;
+                            document.getElementById('kpi-income').textContent = toCurrency(data.incomeAmount || 0);
+                            document.getElementById('kpi-expense').textContent = toCurrency(data.expenseAmount || 0);
+                            document.getElementById('kpi-net').textContent = toCurrency((data.netAmount || 0));
+                        }
+                    })
+                    .catch(e => console.error('备选方案也失败:', e));
+            });
+    })();
+
+    // 账单查询与分页逻辑
+    const api = {
+        records: '/api/bills',    // 后端分页查询接口
+        categories: '/api/categories'
+    };
+    const state = {
+        categories: [],
+        total: 0,          // 总记录数
+        currentPage: 1,    // 当前页码
+        pageSize: 10       // 每页条数
+    };
+
+    // 初始化日期为本月首日到今天
+    function setTodayToFilters() {
+        const today = new Date();
+        const y = today.getFullYear();
+        const m = String(today.getMonth()+1).padStart(2,'0');
+        const d = String(today.getDate()).padStart(2,'0');
+        const ymd = `${y}-${m}-${d}`;
+        // 本月首日
+        const firstDay = `${y}-${m}-01`;
+        document.getElementById('q-from').value = firstDay;
+        document.getElementById('q-to').value = ymd;
+    }
+
+    // 格式化金额（带符号）
+    function formatAmount(row) {
+    // 先移除金额中的逗号（处理千位分隔符），再转换为数字
+    const amountStr = (row.amount || '0').replace(/,/g, ''); // 关键：移除所有逗号
+    const val = Number(amountStr) || 0; // 转换为数字，若失败则用 0
+    const sign = row.recordType === '支出' ? '-' : (row.recordType === '收入' ? '+' : '±');
+    return sign + toCurrency(val);
+}
+
+    // 渲染分类下拉选项
+    function renderCategoryOptions() {
+        const sel = document.getElementById('q-category');
+        const opts = ['<option value="">全部分类</option>']
+            .concat(state.categories.map(c => `<option value="${c.id}">${c.name} (${c.categoryType})</option>`));
+        sel.innerHTML = opts.join('');
+    }
+
+    // 构建查询参数（向后端传递）
+    function buildQueryParams() {
+        return {
+            type: document.getElementById('q-type').value,
+            from: document.getElementById('q-from').value,
+            to: document.getElementById('q-to').value,
+            text: document.getElementById('q-text').value.trim(),
+            categoryId: document.getElementById('q-category').value,
+            page: state.currentPage,       // 分页参数：当前页
+            pageSize: state.pageSize       // 分页参数：每页条数
+        };
+    }
+
+    // 拼接URL参数（将对象转为queryString）
+    function toQueryString(params) {
+        return Object.entries(params)
+            .filter(([k, v]) => v !== '' && v !== undefined && v !== null)
+            .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+            .join('&');
+    }
+
+    // 渲染账单表格
+    function renderRecords(records) {
+        const tbody = document.getElementById('tbody-all');
+        if (!records || records.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="muted">暂无数据</td></tr>';
+            return;
+        }
+
+        const rows = records.map(x => `
+              <tr>
+                <td>${(x.occurredAt || '').replace('T', ' ')}</td>
+                <td>${x.recordType || ''}</td>
+                <td>${x.categoryName || ''}</td> <!-- 直接使用后端返回的分类名称 -->
+                <td>${formatAmount(x)}</td>
+                <td>${x.merchant || ''}</td> <!-- 交易对方对应merchant -->
+                <td>${x.note || ''}</td> <!-- 备注对应note -->
+                <td>${x.status || ''}</td> <!-- 状态对应status -->
+              </tr>
+            `).join('');
+        tbody.innerHTML = rows;
+    }
+
+    // 渲染分页控件
+    function renderPagination() {
+        const totalPages = Math.ceil(state.total / state.pageSize) || 0;
+        document.getElementById('page-info').textContent = `第 ${state.currentPage} 页 / 共 ${totalPages} 页`;
+
+        // 控制上一页/下一页按钮状态
+        document.getElementById('prev-page').disabled = state.currentPage <= 1;
+        document.getElementById('next-page').disabled = state.currentPage >= totalPages;
+    }
+
+    // 调用后端接口查询数据（带分页）
+    async function fetchRecords() {
+        try {
+            const params = buildQueryParams();
+            const queryString = toQueryString(params);
+            const url = `${api.records}?${queryString}`;
+
+            // 调用后端分页接口，先处理Result格式，再获取PageResult数据
+            const result = await fetchJson(url);
+            if (result.code !== 1) {
+                throw new Error(result.msg || '查询账单失败');
+            }
+            const pageResult = result.data; // PageResult包含total和records
+
+            // 更新状态并渲染
+            state.total = pageResult.total || 0;
+            renderRecords(pageResult.records || []);
+            renderPagination();
+        } catch (e) {
+            console.error('查询失败:', e);
+            document.getElementById('tbody-all').innerHTML = `<tr><td colspan="7" class="muted">${e.message || '查询失败，请重试'}</td></tr>`;
+        }
+    }
+
+    // 初始化页面
+    async function init() {
+        setTodayToFilters();
+
+        // 先加载分类数据
+        try {
+            const result = await fetchJson(api.categories);
+            if (result.code !== 1) {
+                throw new Error(result.msg || '加载分类失败');
+            }
+            state.categories = Array.isArray(result.data) ? result.data : [];
+            renderCategoryOptions();
+        } catch (e) {
+            console.error('加载分类失败:', e);
+            // 可以显示错误提示，但不阻断其他功能
+        }
+
+        // 初始查询第一页数据
+        fetchRecords();
+    }
+
+    // 绑定事件监听
+    document.getElementById('btn-refresh').addEventListener('click', () => {
+        state.currentPage = 1; // 重置为第一页
+        fetchRecords();
+    });
+
+    // 每页条数变更
+    document.getElementById('page-size').addEventListener('change', (e) => {
+        state.pageSize = parseInt(e.target.value);
+        state.currentPage = 1; // 重置为第一页
+        fetchRecords();
+    });
+
+    // 上一页
+    document.getElementById('prev-page').addEventListener('click', () => {
+        if (state.currentPage > 1) {
+            state.currentPage--;
+            fetchRecords();
+        }
+    });
+
+    // 下一页
+    document.getElementById('next-page').addEventListener('click', () => {
+        const totalPages = Math.ceil(state.total / state.pageSize) || 0;
+        if (state.currentPage < totalPages) {
+            state.currentPage++;
+            fetchRecords();
+        }
+    });
+
+    // 筛选条件变更时重新查询（保持当前页）
+    document.getElementById('q-type').addEventListener('change', fetchRecords);
+    document.getElementById('q-category').addEventListener('change', fetchRecords);
+    document.getElementById('q-from').addEventListener('change', fetchRecords);
+    document.getElementById('q-to').addEventListener('change', fetchRecords);
+    document.getElementById('q-text').addEventListener('input', (e) => {
+        // 输入停止300ms后再查询，避免频繁请求
+        clearTimeout(window.textSearchTimer);
+        window.textSearchTimer = setTimeout(fetchRecords, 300);
+    });
+
+    // 初始化页面
+    init();
+    </script>
+</body>
+</html>

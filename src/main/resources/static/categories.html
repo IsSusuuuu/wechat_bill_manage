@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>收支分类 - 微信财务监控系统</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+    :root { --apple-bg: #f5f5f7; --apple-card: #ffffff; --apple-text: #1d1d1f; --apple-text-secondary: #86868b; --apple-border: #d2d2d7; --apple-blue: #007aff; --apple-blue-hover: #0051d5; --apple-shadow: 0 2px 10px rgba(0,0,0,0.06); --apple-shadow-hover: 0 4px 20px rgba(0,0,0,0.1); --apple-danger: #ff3b30; --apple-success: #34c759; --apple-warning: #ff9500; --apple-gray: #f5f5f7; }
+    * { box-sizing: border-box; }
+    html,body { margin:0; padding:0; background:var(--apple-bg); color:var(--apple-text); font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif; }
+    .app-header { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; background:rgba(255,255,255,0.8); backdrop-filter:saturate(180%) blur(20px); border-bottom:1px solid rgba(0,0,0,0.08); position:sticky; top:0; z-index:10; }
+    .app-header h1 { font-size:20px; margin:0; font-weight:600; letter-spacing:-0.3px; }
+    .nav { display:flex; gap:8px; }
+    .nav a { color:var(--apple-text-secondary); text-decoration:none; padding:8px 12px; border-radius:8px; border:1px solid transparent; transition:all 0.2s ease; font-weight:400; }
+    .nav a:hover { background:rgba(0,0,0,0.04); color:var(--apple-text); }
+    .nav a.active { color:var(--apple-blue); font-weight:500; background:rgba(0,122,255,0.08); }
+    .container { max-width:1200px; margin:32px auto; padding:0 24px; }
+    .card { background:var(--apple-card); border:1px solid rgba(0,0,0,0.04); border-radius:16px; padding:24px; margin-bottom:24px; box-shadow:var(--apple-shadow); transition:all 0.3s ease; }
+    .card:hover { box-shadow:var(--apple-shadow-hover); }
+    .card h2 { margin:0 0 16px 0; font-size:20px; font-weight:600; letter-spacing:-0.3px; }
+    .btn { display:inline-block; color:white; background:var(--apple-blue); padding:10px 20px; border-radius:10px; text-decoration:none; font-weight:500; transition:all 0.2s ease; border:none; cursor:pointer; font-size:14px; }
+    .btn:hover { background:var(--apple-blue-hover); transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,122,255,0.3); }
+    .btn:active { transform:translateY(0); }
+    .toolbar { display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+    .toolbar input,.toolbar select { background:var(--apple-card); color:var(--apple-text); border:1px solid var(--apple-border); padding:10px 16px; border-radius:10px; font-size:14px; transition:all 0.2s ease; }
+    .toolbar input:focus,.toolbar select:focus { outline:none; border-color:var(--apple-blue); box-shadow:0 0 0 3px rgba(0,122,255,0.1); }
+    .toolbar .btn-secondary { color:var(--apple-text); background:var(--apple-card); border:1px solid var(--apple-border); }
+    .toolbar .btn-secondary:hover { background:var(--apple-gray); }
+    table { width:100%; border-collapse:collapse; background:var(--apple-card); border-radius:12px; overflow:hidden; }
+    th,td { text-align:left; border-bottom:1px solid var(--apple-border); padding:12px 16px; }
+    th { color:var(--apple-text-secondary); font-weight:600; font-size:13px; text-transform:none; letter-spacing:-0.1px; background:var(--apple-gray); }
+    tbody tr:hover { background:rgba(0,0,0,0.02); }
+    .dialog { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.4); backdrop-filter:blur(4px); }
+    .dialog.open { display:flex; }
+    .dialog-panel { width:560px; max-width:92vw; background:var(--apple-card); border:1px solid rgba(0,0,0,0.04); border-radius:20px; padding:24px; box-shadow:0 10px 40px rgba(0,0,0,0.15); }
+    .dialog-title { margin:0 0 20px 0; font-size:20px; font-weight:600; letter-spacing:-0.3px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .form-grid label { display:flex; flex-direction:column; gap:8px; font-size:14px; color:var(--apple-text-secondary); font-weight:500; }
+    .form-grid input,.form-grid select,.form-grid textarea { background:var(--apple-card); color:var(--apple-text); border:1px solid var(--apple-border); padding:10px 14px; border-radius:10px; width:100%; font-size:14px; transition:all 0.2s ease; }
+    .form-grid input:focus,.form-grid select:focus,.form-grid textarea:focus { outline:none; border-color:var(--apple-blue); box-shadow:0 0 0 3px rgba(0,122,255,0.1); }
+    .form-hint { font-size:12px; color:var(--apple-text-secondary); margin-top:4px; }
+    .dialog-actions { display:flex; justify-content:flex-end; gap:12px; margin-top:24px; }
+    .action-buttons { display:flex; gap:6px; flex-wrap:wrap; }
+    .action-btn { padding:6px 12px; border-radius:6px; font-size:12px; font-weight:500; border:none; cursor:pointer; transition:all 0.2s ease; text-decoration:none; display:inline-block; }
+    .action-btn-edit { background:var(--apple-blue); color:white; }
+    .action-btn-edit:hover { background:var(--apple-blue-hover); transform:translateY(-1px); }
+    .action-btn-delete { background:var(--apple-danger); color:white; }
+    .action-btn-delete:hover { background:#d63031; transform:translateY(-1px); }
+    .pagination { display:flex; justify-content:center; align-items:center; gap:16px; margin-top:24px; padding:16px 0; }
+    .pagination button { padding:8px 16px; font-size:14px; }
+    #page-info { color:var(--apple-text-secondary); font-size:14px; }
+    .btn-sm { padding:8px 16px; font-size:14px; }
+    @media (max-width:768px) { .form-grid { grid-template-columns:1fr; } .container { margin:20px auto; padding:0 16px; } .card { padding:20px; border-radius:12px; } .toolbar { flex-direction:column; align-items:stretch; } .toolbar > * { width:100%; } table { font-size:13px; } .app-header { flex-direction:column; align-items:flex-start; gap:12px; } .nav { width:100%; flex-wrap:wrap; } .action-buttons { flex-direction:column; } .action-btn { width:100%; text-align:center; } }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <h1>收支分类</h1>
+        <nav class="nav">
+            <a href="/index.html">首页</a>
+            <a href="/categories.html" class="active">收支分类</a>
+            <a href="/rules.html">自动填充规则</a>
+            <a href="/import.html">账单导入</a>
+            <a href="/import-sessions.html">导入批次</a>
+            <a href="/reports.html">分析报表</a>
+        </nav>
+    </header>
+    <main class="container">
+        <section class="card">
+            <div class="toolbar">
+                <button class="btn" id="btn-new">新增分类</button>
+                <select id="q-type">
+                    <option value="">全部类型</option>
+                    <option value="支出">支出</option>
+                    <option value="收入">收入</option>
+                    <option value="转账">转账</option>
+                </select>
+                <input type="text" id="q" placeholder="搜索名称...">
+                <select id="page-size">
+                    <option value="10">10条/页</option>
+                    <option value="20" selected>20条/页</option>
+                    <option value="50">50条/页</option>
+                </select>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>名称</th>
+                        <th>类型</th>
+                        <th>层级</th>
+                        <th>父级</th>
+                        <th>默认</th>
+                        <th>排序</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody"></tbody>
+            </table>
+            
+            <!-- 分页控件 -->
+            <div class="pagination" id="pagination">
+                <button class="btn btn-sm" id="prev-page" disabled>上一页</button>
+                <span id="page-info">第 1 页 / 共 0 页</span>
+                <button class="btn btn-sm" id="next-page" disabled>下一页</button>
+            </div>
+        </section>
+    </main>
+
+    <div class="dialog" id="dlg-edit">
+        <div class="dialog-panel">
+            <h3 class="dialog-title" id="dlg-title">新增分类</h3>
+            <form id="form-edit">
+                <input type="hidden" name="id">
+                <div class="form-grid">
+                    <label>名称 *
+                        <input name="name" required maxlength="50" placeholder="请输入分类名称">
+                        <small class="form-hint">分类名称不能重复</small>
+                    </label>
+                    <label>类型 *
+                        <select name="categoryType" id="categoryType" required>
+                            <option value="">请选择类型</option>
+                            <option value="支出">支出</option>
+                            <option value="收入">收入</option>
+                            <option value="转账">转账</option>
+                        </select>
+                    </label>
+                    <label>父级分类
+                        <select name="parentId" id="parentId">
+                            <option value="">无（作为一级分类）</option>
+                        </select>
+                        <small class="form-hint">选择父级分类将创建二级分类</small>
+                    </label>
+                    <label>是否默认
+                        <select name="isDefault">
+                            <option value="0">否</option>
+                            <option value="1">是</option>
+                        </select>
+                        <small class="form-hint">默认分类用于未匹配到规则的账单</small>
+                    </label>
+                    <label>排序
+                        <input type="number" name="sort" value="100" min="1" max="999">
+                        <small class="form-hint">数字越小排序越靠前</small>
+                    </label>
+                </div>
+                <div class="dialog-actions">
+                    <button type="button" class="btn-secondary" onclick="closeDialog('dlg-edit')">取消</button>
+                    <button class="btn" id="btn-save" type="submit">
+                        <span class="btn-text">保存</span>
+                        <span class="btn-loading" style="display: none;">保存中...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/utils.js"></script>
+    <script>
+    const apiBase = '/api/categories';
+    const state = { 
+        list: [],
+        categories: [], // 用于父级分类选择
+        currentPage: 1,
+        pageSize: 20,
+        total: 0
+    };
+
+    function renderParentOptions(selectedId, currentType) {
+        const sel = document.getElementById('parentId');
+        // 只显示一级分类作为父级选项，且类型要匹配
+        const parentCategories = state.categories.filter(x => {
+            const typeMatch = currentType === '' || 
+                (currentType === '支出' && x.type === 0) ||
+                (currentType === '收入' && x.type === 1) ||
+                (currentType === '转账' && x.type === 2);
+            return x.level === 1 && typeMatch;
+        });
+        const opts = ['<option value="">无（作为一级分类）</option>']
+            .concat(parentCategories.map(x => {
+                const typeName = x.type === 0 ? '支出' : (x.type === 1 ? '收入' : '转账');
+                return `<option value="${x.id}" ${x.id==selectedId?'selected':''}>${x.categoryName} (${typeName})</option>`;
+            }));
+        sel.innerHTML = opts.join('');
+    }
+
+    function getCategoryTypeName(type) {
+        if (type === 0) return '支出';
+        if (type === 1) return '收入';
+        if (type === 2) return '转账';
+        return '未知';
+    }
+
+    function render() {
+        const tbody = document.getElementById('tbody');
+        const rows = state.list.map(x => {
+            const parent = state.categories.find(it => it.id === x.parentId) || {};
+            return `
+                <tr>
+                    <td>${x.id||''}</td>
+                    <td>${x.categoryName||''}</td>
+                    <td>${x.type === 0 ? '支出' : x.type === 1 ? '收入' : '转账'}</td>
+                    <td>${x.level||''}</td>
+                    <td>${parent.categoryName||''}</td>
+                    <td>${x.isDefault?'是':'否'}</td>
+                    <td>${x.sort||''}</td>
+                    <td>${x.createTime ? x.createTime.split('T')[0] : ''}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="#" data-id="${x.id}" class="action-btn action-btn-edit action-edit">编辑</a>
+                            <a href="#" data-id="${x.id}" class="action-btn action-btn-delete action-del">删除</a>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        tbody.innerHTML = rows || '<tr><td colspan="9" class="muted">暂无数据</td></tr>';
+        qsa('.action-edit').forEach(a => a.addEventListener('click', onEditClick));
+        qsa('.action-del').forEach(a => a.addEventListener('click', onDelClick));
+        
+        // 更新分页信息
+        updatePagination();
+    }
+    
+    function updatePagination() {
+        const totalPages = Math.ceil(state.total / state.pageSize);
+        document.getElementById('page-info').textContent = `第 ${state.currentPage} 页 / 共 ${totalPages} 页`;
+        document.getElementById('prev-page').disabled = state.currentPage <= 1;
+        document.getElementById('next-page').disabled = state.currentPage >= totalPages || totalPages === 0;
+    }
+
+    async function load() {
+        try {
+            // 先加载所有分类用于父级选择
+            const allResult = await fetchJson(apiBase);
+            if (allResult.code === 1 && Array.isArray(allResult.data)) {
+                state.categories = allResult.data;
+            }
+            
+            // 加载分页数据
+            const params = {
+                page: state.currentPage,
+                pageSize: state.pageSize,
+                name: document.getElementById('q').value.trim() || '',
+                type: document.getElementById('q-type').value || ''
+            };
+            
+            // 转换type为数字
+            if (params.type === '支出') params.type = '0';
+            else if (params.type === '收入') params.type = '1';
+            else if (params.type === '转账') params.type = '2';
+            else params.type = '';
+            
+            const queryStr = Object.entries(params)
+                .filter(([k, v]) => v !== '')
+                .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+                .join('&');
+            
+            const result = await fetchJson(`${apiBase}/page?${queryStr}`);
+            if (result.code !== 1) {
+                throw new Error(result.msg || '加载分类数据失败');
+            }
+            
+            state.list = Array.isArray(result.data.records) ? result.data.records : [];
+            state.total = result.data.total || 0;
+            
+            render();
+        } catch (error) {
+            console.error('Failed to load categories:', error);
+            toast('加载分类数据失败：' + error.message);
+        }
+    }
+
+    function onEditClick(e) {
+        e.preventDefault();
+        const id = Number(e.currentTarget.getAttribute('data-id'));
+        const item = state.list.find(x => x.id === id);
+        if (!item) {
+            toast('分类不存在');
+            return;
+        }
+        
+        // 转换type为中文
+        const categoryType = item.type === 0 ? '支出' : (item.type === 1 ? '收入' : '转账');
+        
+        renderParentOptions(item.parentId || '', categoryType);
+        const form = document.getElementById('form-edit');
+        setFormValues(form, {
+            id: item.id,
+            name: item.categoryName,
+            categoryType: categoryType,
+            parentId: item.parentId || '',
+            isDefault: item.isDefault || '0',
+            sort: item.sort || 100
+        });
+        document.getElementById('dlg-title').textContent = '编辑分类';
+        openDialog('dlg-edit');
+    }
+
+    function onDelClick(e) {
+        e.preventDefault();
+        const id = Number(e.currentTarget.getAttribute('data-id'));
+        const item = state.list.find(x => x.id === id);
+        if (!item) {
+            toast('分类不存在');
+            return;
+        }
+        
+        // 检查是否有子分类
+        const hasChildren = state.list.some(x => x.parentId === id);
+        if (hasChildren) {
+            toast('该分类下还有子分类，无法删除');
+            return;
+        }
+        
+        if (!confirm(`确认删除分类"${item.categoryName}"？此操作不可恢复。`)) return;
+        
+        fetchJson(`${apiBase}/${id}`, { method: 'DELETE' })
+            .then(result => {
+                if (result.code === 1) {
+                    toast('删除成功');
+                    load();
+                } else {
+                    toast('删除失败：' + (result.msg || '未知错误'));
+                }
+            })
+            .catch(err => {
+                console.error('删除分类失败:', err);
+                toast('删除失败：' + err.message);
+            });
+    }
+
+    document.getElementById('btn-new').addEventListener('click', () => {
+        renderParentOptions('', '');
+        const form = document.getElementById('form-edit');
+        form.reset();
+        setFormValues(form, { isDefault: '0', sort: 100, categoryType: '' });
+        document.getElementById('dlg-title').textContent = '新增分类';
+        openDialog('dlg-edit');
+    });
+
+    // 搜索和过滤事件
+    let searchTimeout;
+    document.getElementById('q').addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            state.currentPage = 1; // 重置到第一页
+            load();
+        }, 500); // 防抖500ms
+    });
+    
+    document.getElementById('q-type').addEventListener('change', function() {
+        state.currentPage = 1; // 重置到第一页
+        load();
+    });
+    
+    // 分页大小改变
+    document.getElementById('page-size').addEventListener('change', function() {
+        state.pageSize = Number(this.value);
+        state.currentPage = 1; // 重置到第一页
+        load();
+    });
+    
+    // 上一页/下一页
+    document.getElementById('prev-page').addEventListener('click', function() {
+        if (state.currentPage > 1) {
+            state.currentPage--;
+            load();
+        }
+    });
+    
+    document.getElementById('next-page').addEventListener('click', function() {
+        const totalPages = Math.ceil(state.total / state.pageSize);
+        if (state.currentPage < totalPages) {
+            state.currentPage++;
+            load();
+        }
+    });
+
+    document.getElementById('form-edit').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        // 显示加载状态
+        const btnSave = document.getElementById('btn-save');
+        const btnText = btnSave.querySelector('.btn-text');
+        const btnLoading = btnSave.querySelector('.btn-loading');
+        btnText.style.display = 'none';
+        btnLoading.style.display = 'inline';
+        btnSave.disabled = true;
+        
+        const data = getFormValues(e.currentTarget);
+        
+        // 前端验证
+        if (!data.name || data.name.trim() === '') {
+            toast('请输入分类名称');
+            resetButtonState();
+            return;
+        }
+        
+        if (!data.categoryType) {
+            toast('请选择分类类型');
+            resetButtonState();
+            return;
+        }
+        
+        const id = data.id ? Number(data.id) : null;
+        const payload = {
+            categoryName: data.name.trim(),
+            type: data.categoryType === '支出' ? 0 : (data.categoryType === '收入' ? 1 : 2),
+            parentId: data.parentId ? Number(data.parentId) : 0,
+            isDefault: Number(data.isDefault || 0),
+            sort: Number(data.sort || 100)
+        };
+        
+        // 如果有父分类，层级为2，否则为1
+        payload.level = data.parentId ? 2 : 1;
+        
+        const req = id
+            ? fetchJson(`${apiBase}/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
+            : fetchJson(apiBase, { method: 'POST', body: JSON.stringify(payload) });
+            
+        req.then(result => {
+            if (result.code === 1) {
+                toast('保存成功');
+                closeDialog('dlg-edit');
+                load();
+            } else {
+                toast('保存失败：' + (result.msg || '未知错误'));
+            }
+        })
+        .catch(err => {
+            console.error('保存分类失败:', err);
+            toast('保存失败：' + err.message);
+        })
+        .finally(() => {
+            resetButtonState();
+        });
+        
+        function resetButtonState() {
+            btnText.style.display = 'inline';
+            btnLoading.style.display = 'none';
+            btnSave.disabled = false;
+        }
+    });
+
+    // 当类型改变时，更新父级分类选项
+    document.getElementById('categoryType').addEventListener('change', function() {
+        const form = document.getElementById('form-edit');
+        const data = getFormValues(form);
+        renderParentOptions(data.parentId, data.categoryType);
+    });
+
+    load();
+    </script>
+</body>
+</html>

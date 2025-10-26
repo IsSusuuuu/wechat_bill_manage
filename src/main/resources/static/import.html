@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>账单导入 - 微信财务监控系统</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+    :root { --apple-bg: #f5f5f7; --apple-card: #ffffff; --apple-text: #1d1d1f; --apple-text-secondary: #86868b; --apple-border: #d2d2d7; --apple-blue: #007aff; --apple-blue-hover: #0051d5; --apple-shadow: 0 2px 10px rgba(0,0,0,0.06); --apple-shadow-hover: 0 4px 20px rgba(0,0,0,0.1); --apple-danger: #ff3b30; --apple-success: #34c759; --apple-warning: #ff9500; --apple-gray: #f5f5f7; }
+    * { box-sizing: border-box; }
+    html,body { margin:0; padding:0; background:var(--apple-bg); color:var(--apple-text); font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif; }
+    .app-header { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; background:rgba(255,255,255,0.8); backdrop-filter:saturate(180%) blur(20px); border-bottom:1px solid rgba(0,0,0,0.08); position:sticky; top:0; z-index:10; }
+    .app-header h1 { font-size:20px; margin:0; font-weight:600; letter-spacing:-0.3px; }
+    .nav { display:flex; gap:8px; }
+    .nav a { color:var(--apple-text-secondary); text-decoration:none; padding:8px 12px; border-radius:8px; border:1px solid transparent; transition:all 0.2s ease; font-weight:400; }
+    .nav a:hover { background:rgba(0,0,0,0.04); color:var(--apple-text); }
+    .nav a.active { color:var(--apple-blue); font-weight:500; background:rgba(0,122,255,0.08); }
+    .container { max-width:1200px; margin:32px auto; padding:0 24px; }
+    .card { background:var(--apple-card); border:1px solid rgba(0,0,0,0.04); border-radius:16px; padding:24px; margin-bottom:24px; box-shadow:var(--apple-shadow); transition:all 0.3s ease; }
+    .card:hover { box-shadow:var(--apple-shadow-hover); }
+    .card h2 { margin:0 0 16px 0; font-size:20px; font-weight:600; letter-spacing:-0.3px; }
+    .btn { display:inline-block; color:white; background:var(--apple-blue); padding:10px 20px; border-radius:10px; text-decoration:none; font-weight:500; transition:all 0.2s ease; border:none; cursor:pointer; font-size:14px; }
+    .btn:hover { background:var(--apple-blue-hover); transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,122,255,0.3); }
+    .btn:active { transform:translateY(0); }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .form-grid label { display:flex; flex-direction:column; gap:8px; font-size:14px; color:var(--apple-text-secondary); font-weight:500; }
+    .form-grid input,.form-grid select,.form-grid textarea { background:var(--apple-card); color:var(--apple-text); border:1px solid var(--apple-border); padding:10px 14px; border-radius:10px; width:100%; font-size:14px; transition:all 0.2s ease; }
+    .form-grid input:focus,.form-grid select:focus,.form-grid textarea:focus { outline:none; border-color:var(--apple-blue); box-shadow:0 0 0 3px rgba(0,122,255,0.1); }
+    .form-hint { font-size:12px; color:var(--apple-text-secondary); margin-top:4px; }
+    .dialog-actions { display:flex; justify-content:flex-end; gap:12px; margin-top:24px; }
+    @media (max-width:768px) { .form-grid { grid-template-columns:1fr; } .container { margin:20px auto; padding:0 16px; } .card { padding:20px; border-radius:12px; } .app-header { flex-direction:column; align-items:flex-start; gap:12px; } .nav { width:100%; flex-wrap:wrap; } }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <h1>账单导入</h1>
+        <nav class="nav">
+            <a href="/index.html">首页</a>
+            <a href="/categories.html">收支分类</a>
+            <a href="/rules.html">自动填充规则</a>
+            <a href="/import.html" class="active">账单导入</a>
+            <a href="/import-sessions.html">导入批次</a>
+            <a href="/reports.html">分析报表</a>
+        </nav>
+    </header>
+    <main class="container">
+        <section class="card">
+            <h2>导入微信账单（.xlsx）</h2>
+            <form id="form-upload">
+                <div class="form-grid">
+                    <label>账单文件（xlsx）
+                        <input type="file" id="file" name="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+                    </label>
+                    <label>日期范围（可选，便于后端校验）
+                        <div style="display:flex; gap:8px;">
+                            <input type="date" name="fromDate">
+                            <input type="date" name="toDate">
+                        </div>
+                    </label>
+                    <label>去重策略
+                        <select name="dedupe">
+                            <option value="auto">自动（推荐）</option>
+                            <option value="none">不过滤</option>
+                            <option value="strict">严格（时间+金额+商户完全一致即认为重复）</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="dialog-actions">
+                    <button type="submit" class="btn">开始导入</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="card">
+            <h2>导入结果</h2>
+            <div id="result" class="muted">尚未导入</div>
+            <table style="margin-top:12px;">
+                <thead>
+                    <tr>
+                        <th>行号</th>
+                        <th>时间</th>
+                        <th>交易类型</th>
+                        <th>分类</th>
+                        <th>金额</th>
+                        <th>交易对方</th>
+                        <th>备注</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-preview"></tbody>
+            </table>
+        </section>
+    </main>
+
+    <script src="/utils.js"></script>
+ <script>
+const api = { importWechat: '/api/import/wechat-xlsx' };
+
+// 金额格式化工具（确保 toCurrency 函数存在，若 utils.js 中没有需补充）
+function toCurrency(amount) {
+    // 处理金额显示：保留2位小数，添加人民币符号（示例实现）
+    if (amount === undefined || amount === null) return '0.00';
+    // 转换为数字后格式化
+    const num = Number(amount);
+    return '¥' + num.toFixed(2);
+}
+
+function renderPreview(items) {
+    const tbody = document.getElementById('tbody-preview');
+    if (!Array.isArray(items) || items.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="muted">无预览数据</td></tr>';
+        return;
+    }
+    // 渲染预览数据（此处逻辑无误，无需修改）
+    tbody.innerHTML = items.map(x => `
+        <tr>
+            <td>${x.rowIndex ?? ''}</td>
+            <!-- 处理日期格式：将 "2024-10-01T12:30:45" 转为 "2024-10-01 12:30:45" -->
+            <td>${x.occurredAt ? x.occurredAt.replace('T',' ') : ''}</td>
+            <td>${x.recordType || ''}</td>
+            <td>${x.categoryName || ''}</td>
+            <td>${toCurrency(x.amount)}</td> <!-- 确保 toCurrency 函数可用 -->
+            <td>${x.merchant || ''}</td>
+            <td>${x.note || ''}</td>
+            <td>${x.status || ''}</td>
+        </tr>
+    `).join('');
+}
+
+document.getElementById('form-upload').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fileEl = document.getElementById('file');
+    const resultEl = document.getElementById('result');
+    const tbodyPreview = document.getElementById('tbody-preview');
+
+    // 1. 重置之前的结果，避免旧数据干扰
+    resultEl.textContent = '正在导入...';
+    tbodyPreview.innerHTML = '<tr><td colspan="9" class="muted">导入中，请稍候...</td></tr>';
+
+    // 2. 校验文件是否选择
+    if (!fileEl.files || !fileEl.files[0]) {
+        toast('请选择 .xlsx 格式的账单文件');
+        resultEl.textContent = '尚未导入';
+        tbodyPreview.innerHTML = '<tr><td colspan="9" class="muted">无预览数据</td></tr>';
+        return;
+    }
+
+    // 3. 构建 FormData（包含文件和其他表单参数）
+    const fd = new FormData(e.currentTarget);
+    // 确保文件正确传入（若表单中 name="file" 已正确设置，此句可省略，防止重复传值）
+    // fd.set('file', fileEl.files[0]);
+
+    try {
+        // 4. 发送请求到后端
+        const res = await fetch(api.importWechat, {
+            method: 'POST',
+            body: fd
+        });
+
+        // 5. 先处理 HTTP 状态码错误（如 404、500）
+        if (!res.ok) {
+            const errorText = await res.text().catch(() => '服务器请求失败（HTTP ' + res.status + '）');
+            resultEl.textContent = '导入失败：' + errorText;
+            tbodyPreview.innerHTML = '<tr><td colspan="9" class="muted">无预览数据</td></tr>';
+            toast('导入失败：' + errorText);
+            return;
+        }
+
+        // 6. 解析后端返回的 JSON 数据
+        const result = await res.json();
+
+        // 7. 处理后端自定义的错误状态（code=0 表示失败）
+        if (result.code !== 1) {
+            const errorMsg = result.msg || '账单处理失败，请重试';
+            resultEl.textContent = '导入失败：' + errorMsg;
+            tbodyPreview.innerHTML = '<tr><td colspan="9" class="muted">无预览数据</td></tr>';
+            toast('导入失败：' + errorMsg);
+            return;
+        }
+
+        // 8. 处理后端返回的成功数据（核心：正确读取 result.data 中的业务数据）
+        const billResult = result.data; // billResult 就是后端的 BillProcessResultVO
+        // 更新导入结果文本
+        resultEl.textContent = `共 ${billResult.total || 0} 行，入库 ${billResult.inserted || 0} 行，重复 ${billResult.duplicates || 0} 行，错误 ${billResult.errors || 0} 行`;
+        // 渲染预览数据
+        renderPreview(billResult.preview || []);
+        toast('导入完成！');
+
+    } catch (error) {
+        // 9. 捕获网络异常等其他错误
+        resultEl.textContent = '导入失败：网络异常或数据解析错误';
+        tbodyPreview.innerHTML = '<tr><td colspan="9" class="muted">无预览数据</td></tr>';
+        toast('导入失败：请检查网络后重试');
+        console.error('导入异常详情：', error); // 控制台打印错误，便于调试
+    }
+});
+
+// 默认将日期设置为当天（此处逻辑无误，无需修改）
+(function setToday() {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, '0');
+    const d = String(today.getDate()).padStart(2, '0');
+    const ymd = `${y}-${m}-${d}`;
+    const fromDate = document.querySelector('input[name="fromDate"]');
+    const toDate = document.querySelector('input[name="toDate"]');
+    if (fromDate && !fromDate.value) fromDate.value = ymd;
+    if (toDate && !toDate.value) toDate.value = ymd;
+})();
+</script>
+</body>
+</html>
+
