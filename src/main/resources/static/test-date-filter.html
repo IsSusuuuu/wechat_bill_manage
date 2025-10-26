@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>日期筛选测试 - 微信财务监控系统</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <header class="app-header">
+        <h1>日期筛选测试</h1>
+        <nav class="nav">
+            <a href="/import-sessions.html">导入批次管理</a>
+        </nav>
+    </header>
+    <main class="container">
+        <section class="card">
+            <h2>日期筛选功能测试</h2>
+            <div class="toolbar">
+                <button class="btn" onclick="testDefaultDateRange()">测试默认日期范围</button>
+                <button class="btn" onclick="testDateFiltering()">测试日期过滤</button>
+                <button class="btn" onclick="testResetDate()">测试重置日期</button>
+            </div>
+            <div id="test-results" style="background: #1a1a1a; padding: 16px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; max-height: 400px; overflow-y: auto; margin-top: 16px;"></div>
+        </section>
+        
+        <section class="card">
+            <h2>模拟日期筛选器</h2>
+            <div class="toolbar">
+                <input type="date" id="test-date-from" placeholder="开始日期" onchange="testDateChange()">
+                <input type="date" id="test-date-to" placeholder="结束日期" onchange="testDateChange()">
+                <button class="btn-secondary" onclick="resetTestDates()">重置为本月</button>
+            </div>
+            <div id="date-info" style="margin-top: 16px; padding: 16px; background: #1a1a1a; border-radius: 8px;"></div>
+        </section>
+    </main>
+
+    <script>
+    function log(message) {
+        const results = document.getElementById('test-results');
+        const timestamp = new Date().toLocaleTimeString();
+        results.textContent += `[${timestamp}] ${message}\n`;
+        results.scrollTop = results.scrollHeight;
+        console.log(message);
+    }
+
+    function testDefaultDateRange() {
+        log('测试默认日期范围设置...');
+        
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
+        const fromDate = formatDate(firstDayOfMonth);
+        const toDate = formatDate(today);
+        
+        log(`今天: ${toDate}`);
+        log(`本月第一天: ${fromDate}`);
+        log(`日期范围: ${fromDate} 到 ${toDate}`);
+        
+        // 设置测试日期
+        document.getElementById('test-date-from').value = fromDate;
+        document.getElementById('test-date-to').value = toDate;
+        
+        log('✅ 默认日期范围设置完成');
+        updateDateInfo();
+    }
+
+    function testDateFiltering() {
+        log('测试日期过滤逻辑...');
+        
+        const fromDate = document.getElementById('test-date-from').value;
+        const toDate = document.getElementById('test-date-to').value;
+        
+        if (!fromDate || !toDate) {
+            log('❌ 请先设置日期范围');
+            return;
+        }
+        
+        // 模拟一些导入批次数据
+        const mockSessions = [
+            { id: 1, importTime: '2024-10-01T10:30:00', fileName: 'batch1.xlsx' },
+            { id: 2, importTime: '2024-10-15T14:20:00', fileName: 'batch2.xlsx' },
+            { id: 3, importTime: '2024-10-30T09:15:00', fileName: 'batch3.xlsx' },
+            { id: 4, importTime: '2024-11-01T16:45:00', fileName: 'batch4.xlsx' }
+        ];
+        
+        log(`过滤条件: ${fromDate} 到 ${toDate}`);
+        
+        const filteredSessions = mockSessions.filter(session => {
+            const sessionDate = new Date(session.importTime);
+            const from = new Date(fromDate);
+            const to = new Date(toDate);
+            to.setHours(23, 59, 59, 999);
+            
+            const matches = sessionDate >= from && sessionDate <= to;
+            log(`  批次 ${session.id} (${session.importTime}): ${matches ? '匹配' : '不匹配'}`);
+            return matches;
+        });
+        
+        log(`过滤结果: ${filteredSessions.length} 个批次匹配`);
+        log('✅ 日期过滤测试完成');
+    }
+
+    function testResetDate() {
+        log('测试重置日期功能...');
+        resetTestDates();
+        log('✅ 日期已重置为本月范围');
+    }
+
+    function resetTestDates() {
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
+        document.getElementById('test-date-from').value = formatDate(firstDayOfMonth);
+        document.getElementById('test-date-to').value = formatDate(today);
+        updateDateInfo();
+    }
+
+    function testDateChange() {
+        updateDateInfo();
+    }
+
+    function updateDateInfo() {
+        const fromDate = document.getElementById('test-date-from').value;
+        const toDate = document.getElementById('test-date-to').value;
+        
+        let info = '<h4>当前日期范围</h4>';
+        if (fromDate && toDate) {
+            const from = new Date(fromDate);
+            const to = new Date(toDate);
+            const daysDiff = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+            
+            info += `<p>开始日期: ${fromDate} (${from.toLocaleDateString('zh-CN')})</p>`;
+            info += `<p>结束日期: ${toDate} (${to.toLocaleDateString('zh-CN')})</p>`;
+            info += `<p>天数范围: ${daysDiff} 天</p>`;
+            
+            if (daysDiff < 0) {
+                info += `<p style="color: #dc3545;">⚠️ 结束日期不能早于开始日期</p>`;
+            } else if (daysDiff > 365) {
+                info += `<p style="color: #ffc107;">⚠️ 日期范围超过一年，可能影响性能</p>`;
+            } else {
+                info += `<p style="color: #28a745;">✅ 日期范围有效</p>`;
+            }
+        } else {
+            info += '<p style="color: #6c757d;">请选择日期范围</p>';
+        }
+        
+        document.getElementById('date-info').innerHTML = info;
+    }
+
+    // 页面加载时初始化
+    window.addEventListener('load', () => {
+        log('页面加载完成，开始日期筛选测试...');
+        testDefaultDateRange();
+    });
+    </script>
+</body>
+</html>

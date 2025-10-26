@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>规则创建调试 - 微信财务监控系统</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <header class="app-header">
+        <h1>规则创建调试</h1>
+        <nav class="nav">
+            <a href="/index.html">首页</a>
+            <a href="/rules.html">规则管理</a>
+        </nav>
+    </header>
+    <main class="container">
+        <section class="card">
+            <h2>创建规则测试</h2>
+            <form id="test-form">
+                <div class="form-grid">
+                    <label>规则名称
+                        <input name="ruleName" value="测试规则" required>
+                    </label>
+                    <label>描述
+                        <input name="description" value="测试描述">
+                    </label>
+                    <label>关键词
+                        <input name="keyword" value="测试" required>
+                    </label>
+                    <label>匹配类型
+                        <select name="matchType" required>
+                            <option value="1" selected>包含</option>
+                            <option value="2">完全等于</option>
+                            <option value="3">正则表达式</option>
+                            <option value="4">前缀匹配</option>
+                            <option value="5">后缀匹配</option>
+                        </select>
+                    </label>
+                    <label>正则表达式
+                        <input name="regexPattern" value="">
+                    </label>
+                    <label>排除关键词
+                        <input name="excludeKeyword" value="">
+                    </label>
+                    <label>匹配字段
+                        <select name="matchFields">
+                            <option value="counterparty,product,remark" selected>全部字段</option>
+                            <option value="counterparty">交易对方</option>
+                            <option value="product">商品说明</option>
+                            <option value="remark">备注</option>
+                        </select>
+                    </label>
+                    <label>一级分类ID
+                        <input name="firstCategoryId" value="1" required>
+                    </label>
+                    <label>二级分类ID
+                        <input name="secondCategoryId" value="">
+                    </label>
+                    <label>优先级
+                        <input name="priority" value="100" type="number">
+                    </label>
+                    <label>是否启用
+                        <select name="isEnabled">
+                            <option value="1" selected>启用</option>
+                            <option value="0">禁用</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="dialog-actions">
+                    <button type="submit" class="btn">创建规则</button>
+                    <button type="button" class="btn-secondary" onclick="testGetCategories()">获取分类列表</button>
+                </div>
+            </form>
+        </section>
+        
+        <section class="card">
+            <h2>调试信息</h2>
+            <div id="debug-info" style="background: #1a1a1a; padding: 16px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; max-height: 400px; overflow-y: auto;"></div>
+        </section>
+    </main>
+
+    <script src="/utils.js"></script>
+    <script>
+    const api = {
+        rules: '/api/rules',
+        categories: '/api/categories'
+    };
+
+    function log(message) {
+        const debugInfo = document.getElementById('debug-info');
+        const timestamp = new Date().toLocaleTimeString();
+        debugInfo.textContent += `[${timestamp}] ${message}\n`;
+        debugInfo.scrollTop = debugInfo.scrollHeight;
+        console.log(message);
+    }
+
+    function getFormValues(form) {
+        const formData = new FormData(form);
+        const data = {};
+        for (let [key, value] of formData.entries()) {
+            data[key] = value;
+        }
+        return data;
+    }
+
+    async function testGetCategories() {
+        try {
+            log('正在获取分类列表...');
+            const result = await fetchJson(api.categories);
+            log(`分类列表响应: ${JSON.stringify(result, null, 2)}`);
+            
+            if (result.code === 1 && Array.isArray(result.data)) {
+                log(`找到 ${result.data.length} 个分类`);
+                result.data.forEach(cat => {
+                    log(`- ID: ${cat.id}, 名称: ${cat.categoryName}, 类型: ${cat.type}, 层级: ${cat.level}`);
+                });
+            } else {
+                log('获取分类失败或数据格式错误');
+            }
+        } catch (error) {
+            log(`获取分类失败: ${error.message}`);
+        }
+    }
+
+    document.getElementById('test-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const data = getFormValues(e.currentTarget);
+        log('表单数据: ' + JSON.stringify(data, null, 2));
+        
+        // 构建请求数据
+        const payload = {
+            ruleName: data.ruleName.trim(),
+            description: data.description ? data.description.trim() : null,
+            matchFields: data.matchFields,
+            matchType: Number(data.matchType),
+            keyword: data.keyword.trim(),
+            regexPattern: data.regexPattern ? data.regexPattern.trim() : null,
+            excludeKeyword: data.excludeKeyword ? data.excludeKeyword.trim() : null,
+            firstCategoryId: Number(data.firstCategoryId),
+            secondCategoryId: data.secondCategoryId ? Number(data.secondCategoryId) : null,
+            priority: Number(data.priority || 100),
+            isEnabled: Number(data.isEnabled || 1)
+        };
+        
+        log('请求数据: ' + JSON.stringify(payload, null, 2));
+        
+        try {
+            log('正在发送创建规则请求...');
+            const result = await fetchJson(api.rules, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+            
+            log(`响应状态: ${result.code}`);
+            log(`响应消息: ${result.msg || '无消息'}`);
+            log(`响应数据: ${JSON.stringify(result.data, null, 2)}`);
+            
+            if (result.code === 1) {
+                log('✅ 规则创建成功！');
+            } else {
+                log('❌ 规则创建失败！');
+            }
+        } catch (error) {
+            log(`❌ 请求失败: ${error.message}`);
+            log(`错误堆栈: ${error.stack}`);
+        }
+    });
+
+    // 页面加载时获取分类列表
+    window.addEventListener('load', () => {
+        log('页面加载完成，开始调试...');
+        testGetCategories();
+    });
+    </script>
+</body>
+</html>

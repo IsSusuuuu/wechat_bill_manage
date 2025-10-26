@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>分类功能测试 - 微信财务监控系统</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .test-success { background: rgba(52, 211, 153, 0.1); border: 1px solid var(--ok); }
+        .test-error { background: rgba(248, 113, 113, 0.1); border: 1px solid var(--danger); }
+        .test-info { background: rgba(56, 189, 248, 0.1); border: 1px solid var(--brand-2); }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <h1>分类功能测试</h1>
+        <nav class="nav">
+            <a href="/index.html">首页</a>
+            <a href="/categories.html">分类管理</a>
+        </nav>
+    </header>
+    
+    <main class="container">
+        <div class="test-section">
+            <h3>1. 测试获取所有分类</h3>
+            <button class="btn" onclick="testGetAllCategories()">测试获取分类</button>
+            <div id="result-get-all" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>2. 测试创建分类</h3>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                <label>分类名称
+                    <input type="text" id="test-name" value="测试分类">
+                </label>
+                <label>分类类型
+                    <select id="test-type">
+                        <option value="支出">支出</option>
+                        <option value="收入">收入</option>
+                        <option value="转账">转账</option>
+                    </select>
+                </label>
+                <label>排序
+                    <input type="number" id="test-sort" value="100">
+                </label>
+            </div>
+            <button class="btn" onclick="testCreateCategory()">测试创建分类</button>
+            <div id="result-create" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>3. 测试更新分类</h3>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                <label>分类ID
+                    <input type="number" id="update-id" placeholder="输入要更新的分类ID">
+                </label>
+                <label>新名称
+                    <input type="text" id="update-name" value="更新后的分类名称">
+                </label>
+            </div>
+            <button class="btn" onclick="testUpdateCategory()">测试更新分类</button>
+            <div id="result-update" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>4. 测试删除分类</h3>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                <label>分类ID
+                    <input type="number" id="delete-id" placeholder="输入要删除的分类ID">
+                </label>
+                <label>
+                    <button class="btn" onclick="testDeleteCategory()">测试删除分类</button>
+                </label>
+            </div>
+            <div id="result-delete" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>5. 测试错误处理</h3>
+            <button class="btn" onclick="testErrorHandling()">测试错误处理</button>
+            <div id="result-error" class="test-result" style="display: none;"></div>
+        </div>
+    </main>
+
+    <script src="/utils.js"></script>
+    <script>
+        const apiBase = '/api/categories';
+        
+        function showResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `test-result test-${type}`;
+            element.textContent = content;
+        }
+        
+        async function testGetAllCategories() {
+            try {
+                const result = await fetchJson(apiBase);
+                showResult('result-get-all', 
+                    `状态码: ${result.code}\n消息: ${result.msg || '成功'}\n数据: ${JSON.stringify(result.data, null, 2)}`, 
+                    result.code === 1 ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult('result-get-all', `请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testCreateCategory() {
+            try {
+                const payload = {
+                    categoryName: document.getElementById('test-name').value,
+                    type: document.getElementById('test-type').value === '支出' ? 0 : 
+                          (document.getElementById('test-type').value === '收入' ? 1 : 2),
+                    parentId: 0,
+                    level: 1,
+                    isDefault: 0,
+                    sort: Number(document.getElementById('test-sort').value)
+                };
+                
+                const result = await fetchJson(apiBase, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                showResult('result-create', 
+                    `状态码: ${result.code}\n消息: ${result.msg || '成功'}\n数据: ${JSON.stringify(result.data, null, 2)}`, 
+                    result.code === 1 ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult('result-create', `请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testUpdateCategory() {
+            try {
+                const id = document.getElementById('update-id').value;
+                if (!id) {
+                    showResult('result-update', '请输入分类ID', 'error');
+                    return;
+                }
+                
+                const payload = {
+                    categoryName: document.getElementById('update-name').value,
+                    type: 0,
+                    parentId: 0,
+                    level: 1,
+                    isDefault: 0,
+                    sort: 100
+                };
+                
+                const result = await fetchJson(`${apiBase}/${id}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+                
+                showResult('result-update', 
+                    `状态码: ${result.code}\n消息: ${result.msg || '成功'}\n数据: ${JSON.stringify(result.data, null, 2)}`, 
+                    result.code === 1 ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult('result-update', `请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testDeleteCategory() {
+            try {
+                const id = document.getElementById('delete-id').value;
+                if (!id) {
+                    showResult('result-delete', '请输入分类ID', 'error');
+                    return;
+                }
+                
+                if (!confirm(`确认删除分类ID ${id}？`)) {
+                    return;
+                }
+                
+                const result = await fetchJson(`${apiBase}/${id}`, {
+                    method: 'DELETE'
+                });
+                
+                showResult('result-delete', 
+                    `状态码: ${result.code}\n消息: ${result.msg || '成功'}`, 
+                    result.code === 1 ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult('result-delete', `请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testErrorHandling() {
+            try {
+                // 测试创建重复名称的分类
+                const payload = {
+                    categoryName: '重复测试分类',
+                    type: 0,
+                    parentId: 0,
+                    level: 1,
+                    isDefault: 0,
+                    sort: 100
+                };
+                
+                // 第一次创建
+                const result1 = await fetchJson(apiBase, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                // 第二次创建相同名称（应该失败）
+                const result2 = await fetchJson(apiBase, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                showResult('result-error', 
+                    `第一次创建: ${result1.code === 1 ? '成功' : '失败'}\n第二次创建: ${result2.code === 1 ? '成功' : '失败'}\n错误信息: ${result2.msg || '无'}`, 
+                    result2.code === 1 ? 'error' : 'success'
+                );
+            } catch (error) {
+                showResult('result-error', `请求失败: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

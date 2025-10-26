@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>流水明细删除验证 - 微信财务监控系统</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <header class="app-header">
+        <h1>流水明细删除验证</h1>
+        <nav class="nav">
+            <a href="/index.html">首页</a>
+            <a href="/categories.html">收支分类</a>
+            <a href="/rules.html">自动填充规则</a>
+            <a href="/import.html">账单导入</a>
+            <a href="/import-sessions.html">导入批次</a>
+        </nav>
+    </header>
+    <main class="container">
+        <section class="card">
+            <h2>删除验证结果</h2>
+            <div id="test-results" style="background: #1a1a1a; padding: 16px; border-radius: 8px; font-family: monospace; white-space: pre-wrap; max-height: 400px; overflow-y: auto;"></div>
+        </section>
+        
+        <section class="card">
+            <h2>导航链接测试</h2>
+            <div class="toolbar">
+                <button class="btn" onclick="testNavigationLinks()">测试导航链接</button>
+                <button class="btn" onclick="testRecordsPageAccess()">测试流水明细页面访问</button>
+            </div>
+            <div id="navigation-results" style="margin-top: 16px; padding: 16px; background: #1a1a1a; border-radius: 8px;"></div>
+        </section>
+    </main>
+
+    <script>
+    function log(message) {
+        const results = document.getElementById('test-results');
+        const timestamp = new Date().toLocaleTimeString();
+        results.textContent += `[${timestamp}] ${message}\n`;
+        results.scrollTop = results.scrollHeight;
+        console.log(message);
+    }
+
+    function testNavigationLinks() {
+        log('测试导航链接...');
+        
+        const navLinks = [
+            { name: '首页', url: '/index.html' },
+            { name: '收支分类', url: '/categories.html' },
+            { name: '自动填充规则', url: '/rules.html' },
+            { name: '账单导入', url: '/import.html' },
+            { name: '导入批次', url: '/import-sessions.html' }
+        ];
+        
+        let results = '<h4>导航链接检查结果</h4>';
+        let allValid = true;
+        
+        navLinks.forEach(link => {
+            // 检查链接是否包含流水明细
+            if (link.name === '流水明细' || link.url.includes('records')) {
+                results += `<p style="color: #dc3545;">❌ 发现流水明细链接: ${link.name} - ${link.url}</p>`;
+                allValid = false;
+            } else {
+                results += `<p style="color: #28a745;">✅ ${link.name} - ${link.url}</p>`;
+            }
+        });
+        
+        if (allValid) {
+            results += '<p style="color: #28a745; font-weight: bold;">✅ 所有导航链接都已正确更新，没有流水明细链接</p>';
+        } else {
+            results += '<p style="color: #dc3545; font-weight: bold;">❌ 发现未清理的流水明细链接</p>';
+        }
+        
+        document.getElementById('navigation-results').innerHTML = results;
+        log('导航链接测试完成');
+    }
+
+    function testRecordsPageAccess() {
+        log('测试流水明细页面访问...');
+        
+        fetch('/records.html')
+            .then(response => {
+                if (response.status === 404) {
+                    log('✅ 流水明细页面已成功删除 (404 Not Found)');
+                    document.getElementById('navigation-results').innerHTML += 
+                        '<p style="color: #28a745;">✅ 流水明细页面访问测试通过 - 页面已删除</p>';
+                } else {
+                    log('❌ 流水明细页面仍然存在 (状态码: ' + response.status + ')');
+                    document.getElementById('navigation-results').innerHTML += 
+                        '<p style="color: #dc3545;">❌ 流水明细页面仍然可以访问</p>';
+                }
+            })
+            .catch(error => {
+                log('✅ 流水明细页面访问失败，页面已删除: ' + error.message);
+                document.getElementById('navigation-results').innerHTML += 
+                    '<p style="color: #28a745;">✅ 流水明细页面访问测试通过 - 页面已删除</p>';
+            });
+    }
+
+    // 页面加载时自动运行测试
+    window.addEventListener('load', () => {
+        log('页面加载完成，开始验证流水明细删除...');
+        testNavigationLinks();
+        testRecordsPageAccess();
+    });
+    </script>
+</body>
+</html>

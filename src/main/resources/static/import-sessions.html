@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>导入批次管理 - 微信财务监控系统</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+    :root { --apple-bg: #f5f5f7; --apple-card: #ffffff; --apple-text: #1d1d1f; --apple-text-secondary: #86868b; --apple-border: #d2d2d7; --apple-blue: #007aff; --apple-blue-hover: #0051d5; --apple-shadow: 0 2px 10px rgba(0,0,0,0.06); --apple-shadow-hover: 0 4px 20px rgba(0,0,0,0.1); --apple-danger: #ff3b30; --apple-success: #34c759; --apple-warning: #ff9500; --apple-gray: #f5f5f7; }
+    * { box-sizing: border-box; }
+    html,body { margin:0; padding:0; background:var(--apple-bg); color:var(--apple-text); font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif; }
+    .app-header { display:flex; align-items:center; justify-content:space-between; padding:16px 24px; background:rgba(255,255,255,0.8); backdrop-filter:saturate(180%) blur(20px); border-bottom:1px solid rgba(0,0,0,0.08); position:sticky; top:0; z-index:10; }
+    .app-header h1 { font-size:20px; margin:0; font-weight:600; letter-spacing:-0.3px; }
+    .nav { display:flex; gap:8px; }
+    .nav a { color:var(--apple-text-secondary); text-decoration:none; padding:8px 12px; border-radius:8px; border:1px solid transparent; transition:all 0.2s ease; font-weight:400; }
+    .nav a:hover { background:rgba(0,0,0,0.04); color:var(--apple-text); }
+    .nav a.active { color:var(--apple-blue); font-weight:500; background:rgba(0,122,255,0.08); }
+    .container { max-width:1400px; margin:32px auto; padding:0 24px; }
+    .card { background:var(--apple-card); border:1px solid rgba(0,0,0,0.04); border-radius:16px; padding:24px; margin-bottom:24px; box-shadow:var(--apple-shadow); transition:all 0.3s ease; }
+    .card:hover { box-shadow:var(--apple-shadow-hover); }
+    .card h2 { margin:0 0 16px 0; font-size:20px; font-weight:600; letter-spacing:-0.3px; }
+    #summary { display:grid; grid-template-columns:repeat(6,1fr); gap:16px; }
+    .kpi { background:var(--apple-card); border:1px solid var(--apple-border); border-radius:12px; padding:20px; transition:all 0.2s ease; }
+    .kpi:hover { transform:translateY(-2px); box-shadow:var(--apple-shadow); }
+    .kpi-title { color:var(--apple-text-secondary); font-size:14px; font-weight:500; margin-bottom:8px; }
+    .kpi-value { font-size:28px; font-weight:700; color:var(--apple-text); letter-spacing:-0.5px; }
+    .btn { display:inline-block; color:white; background:var(--apple-blue); padding:10px 20px; border-radius:10px; text-decoration:none; font-weight:500; transition:all 0.2s ease; border:none; cursor:pointer; font-size:14px; }
+    .btn:hover { background:var(--apple-blue-hover); transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,122,255,0.3); }
+    .btn:active { transform:translateY(0); }
+    .toolbar { display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+    .toolbar input,.toolbar select { background:var(--apple-card); color:var(--apple-text); border:1px solid var(--apple-border); padding:10px 16px; border-radius:10px; font-size:14px; transition:all 0.2s ease; }
+    .toolbar input:focus,.toolbar select:focus { outline:none; border-color:var(--apple-blue); box-shadow:0 0 0 3px rgba(0,122,255,0.1); }
+    .toolbar .btn-secondary { color:var(--apple-text); background:var(--apple-card); border:1px solid var(--apple-border); }
+    .toolbar .btn-secondary:hover { background:var(--apple-gray); }
+    .toolbar .btn-secondary:disabled,.toolbar .btn-danger:disabled { opacity:0.5; cursor:not-allowed; transform:none !important; }
+    .toolbar .btn-danger { color:#fff; background:var(--apple-danger); border:1px solid var(--apple-danger); }
+    .toolbar .btn-danger:hover { background:#d63031; }
+    table { width:100%; border-collapse:collapse; background:var(--apple-card); border-radius:12px; overflow:hidden; }
+    th,td { text-align:left; border-bottom:1px solid var(--apple-border); padding:12px 16px; font-size:13px; }
+    th { color:var(--apple-text-secondary); font-weight:600; font-size:13px; text-transform:none; letter-spacing:-0.1px; background:var(--apple-gray); }
+    tbody tr:hover { background:rgba(0,0,0,0.02); }
+    .dialog { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.4); backdrop-filter:blur(4px); z-index:1000; }
+    .dialog.open { display:flex; }
+    .dialog-panel { width:560px; max-width:92vw; background:var(--apple-card); border:1px solid rgba(0,0,0,0.04); border-radius:20px; padding:24px; box-shadow:0 10px 40px rgba(0,0,0,0.15); }
+    .dialog-title { margin:0 0 20px 0; font-size:20px; font-weight:600; letter-spacing:-0.3px; }
+    .dialog-actions { display:flex; justify-content:flex-end; gap:12px; margin-top:24px; }
+    .success { color:var(--apple-success); font-weight:600; }
+    .warning { color:var(--apple-warning); font-weight:600; }
+    .error { color:var(--apple-danger); font-weight:600; }
+    .success-rate { padding:4px 8px; border-radius:6px; font-size:12px; font-weight:600; }
+    .success-rate.success { background:rgba(52,199,89,0.1); color:var(--apple-success); }
+    .success-rate.warning { background:rgba(255,149,0,0.1); color:var(--apple-warning); }
+    .success-rate.error { background:rgba(255,59,48,0.1); color:var(--apple-danger); }
+    .status-badge { padding:4px 10px; border-radius:8px; font-size:12px; font-weight:600; }
+    .status-badge.success { background:rgba(52,199,89,0.1); color:var(--apple-success); }
+    .status-badge.warning { background:rgba(255,149,0,0.1); color:var(--apple-warning); }
+    .status-badge.error { background:rgba(255,59,48,0.1); color:var(--apple-danger); }
+    tr.selected { background:rgba(0,122,255,0.08); }
+    tr.selected td { border-color:rgba(0,122,255,0.2); }
+    #batch-actions { border:1px solid rgba(0,122,255,0.2); background:rgba(0,122,255,0.05); }
+    #batch-actions span { font-weight:600; color:var(--apple-blue); }
+    @media (max-width:1200px) { #summary { grid-template-columns:repeat(3,1fr); } }
+    @media (max-width:768px) { #summary { grid-template-columns:1fr; } .container { margin:20px auto; padding:0 16px; } .card { padding:20px; border-radius:12px; } .toolbar { flex-direction:column; align-items:stretch; } .toolbar > * { width:100%; } table { font-size:12px; } .kpi { min-width:120px; } .app-header { flex-direction:column; align-items:flex-start; gap:12px; } .nav { width:100%; flex-wrap:wrap; } }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <h1>导入批次管理</h1>
+        <nav class="nav">
+            <a href="/index.html">首页</a>
+            <a href="/categories.html">收支分类</a>
+            <a href="/rules.html">自动填充规则</a>
+            <a href="/import.html">账单导入</a>
+            <a href="/import-sessions.html" class="active">导入批次</a>
+            <a href="/reports.html">分析报表</a>
+        </nav>
+    </header>
+    <main class="container">
+        <!-- 统计概览 -->
+        <section class="card">
+            <h2>导入统计概览</h2>
+            <div id="summary">
+                <div class="kpi"><div class="kpi-title">总导入批次</div><div class="kpi-value" id="kpi-sessions">-</div></div>
+                <div class="kpi"><div class="kpi-title">总导入行数</div><div class="kpi-value" id="kpi-rows">-</div></div>
+                <div class="kpi"><div class="kpi-title">成功导入</div><div class="kpi-value" id="kpi-inserted">-</div></div>
+                <div class="kpi"><div class="kpi-title">重复行数</div><div class="kpi-value" id="kpi-duplicates">-</div></div>
+                <div class="kpi"><div class="kpi-title">错误行数</div><div class="kpi-value" id="kpi-errors">-</div></div>
+                <div class="kpi"><div class="kpi-title">成功率</div><div class="kpi-value" id="kpi-success-rate">-</div></div>
+            </div>
+        </section>
+
+        <!-- 导入批次列表 -->
+        <section class="card">
+            <h2>导入批次列表</h2>
+            <div class="toolbar">
+                <button class="btn" onclick="loadImportSessions()">🔄 刷新</button>
+                <button class="btn-secondary" onclick="loadImportTrends()">📊 趋势分析</button>
+                <button class="btn-secondary" onclick="exportSessions()">📤 导出数据</button>
+                <button class="btn-secondary" onclick="resetDateFilter()">📅 重置日期</button>
+                <select id="filter-status" onchange="filterSessions()">
+                    <option value="">全部状态</option>
+                    <option value="success">成功</option>
+                    <option value="warning">部分成功</option>
+                    <option value="error">失败</option>
+                </select>
+                <input type="date" id="filter-date-from" placeholder="开始日期" onchange="filterSessions()" title="开始日期（默认本月第一天）">
+                <input type="date" id="filter-date-to" placeholder="结束日期" onchange="filterSessions()" title="结束日期（默认今天）">
+                <input type="text" id="search-sessions" placeholder="搜索文件名..." oninput="filterSessions()">
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="select-all-sessions" onchange="toggleSelectAll()"></th>
+                        <th>批次ID</th>
+                        <th>文件名</th>
+                        <th>文件类型</th>
+                        <th>总行数</th>
+                        <th>成功导入</th>
+                        <th>重复行</th>
+                        <th>错误行</th>
+                        <th>成功率</th>
+                        <th>状态</th>
+                        <th>导入时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="sessions-tbody"></tbody>
+            </table>
+            
+            <!-- 批量操作工具栏 -->
+            <div id="batch-actions" class="toolbar" style="display: none; margin-top: 10px; padding: 10px; background: #1a1a1a; border-radius: 8px;">
+                <span id="selected-count">已选择 0 个批次</span>
+                <button class="btn-secondary" onclick="batchReprocess()">重新处理</button>
+                <button class="btn-danger" onclick="batchDelete()">批量删除</button>
+                <button class="btn-secondary" onclick="batchExport()">批量导出</button>
+                <button class="btn-secondary" onclick="clearSelection()">取消选择</button>
+            </div>
+        </section>
+
+        <!-- 批次详情对话框 -->
+        <div class="dialog" id="dlg-session-detail">
+            <div class="dialog-panel">
+                <h3 class="dialog-title">批次详情</h3>
+                <div id="session-detail-content"></div>
+                <div class="dialog-actions">
+                    <button class="btn-secondary" onclick="closeDialog('dlg-session-detail')">关闭</button>
+                    <button class="btn-danger" id="btn-delete-session" style="display: none;">删除批次</button>
+                    <button class="btn" id="btn-reprocess-session" style="display: none;">重新处理</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 趋势分析对话框 -->
+        <div class="dialog" id="dlg-trends">
+            <div class="dialog-panel" style="width: 800px;">
+                <h3 class="dialog-title">导入趋势分析</h3>
+                <div id="trends-content"></div>
+                <div class="dialog-actions">
+                    <button class="btn-secondary" onclick="closeDialog('dlg-trends')">关闭</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/utils.js"></script>
+    <script>
+    const api = {
+        sessions: '/api/import-sessions',
+        statistics: '/api/import-sessions/statistics',
+        trends: '/api/import-sessions/trends'
+    };
+    
+    let currentSessionId = null;
+    let allSessions = [];
+    let filteredSessions = [];
+    let selectedSessions = new Set();
+    
+    // 加载导入统计
+    async function loadStatistics() {
+        try {
+            const result = await fetchJson(api.statistics);
+            if (result.code === 1) {
+                const data = result.data;
+                document.getElementById('kpi-sessions').textContent = data.total_sessions || 0;
+                document.getElementById('kpi-rows').textContent = (data.total_rows || 0).toLocaleString();
+                document.getElementById('kpi-inserted').textContent = (data.total_inserted || 0).toLocaleString();
+                document.getElementById('kpi-duplicates').textContent = (data.total_duplicates || 0).toLocaleString();
+                document.getElementById('kpi-errors').textContent = (data.total_errors || 0).toLocaleString();
+                document.getElementById('kpi-success-rate').textContent = 
+                    (data.success_rate || 0).toFixed(1) + '%';
+            }
+        } catch (error) {
+            console.error('加载统计失败:', error);
+        }
+    }
+    
+    // 加载导入批次列表
+    async function loadImportSessions() {
+        try {
+            showLoading('sessions-tbody', '正在加载导入批次...');
+            const result = await fetchJson(api.sessions);
+            if (result.code === 1) {
+                allSessions = result.data || [];
+                filterSessions();
+            } else {
+                console.error('加载导入批次失败:', result.msg);
+                showError('sessions-tbody', '加载失败：' + result.msg);
+            }
+        } catch (error) {
+            console.error('加载导入批次失败:', error);
+            showError('sessions-tbody', '加载失败：' + error.message);
+        }
+    }
+    
+    // 过滤和搜索批次
+    function filterSessions() {
+        const searchTerm = document.getElementById('search-sessions').value.toLowerCase();
+        const statusFilter = document.getElementById('filter-status').value;
+        const dateFrom = document.getElementById('filter-date-from').value;
+        const dateTo = document.getElementById('filter-date-to').value;
+        
+        filteredSessions = allSessions.filter(session => {
+            // 搜索过滤
+            const matchesSearch = !searchTerm || 
+                (session.fileName || '').toLowerCase().includes(searchTerm) ||
+                (session.sourceType || '').toLowerCase().includes(searchTerm);
+            
+            // 状态过滤
+            let matchesStatus = true;
+            if (statusFilter) {
+                const successRate = session.totalRows > 0 ? 
+                    (session.insertedRows * 100 / session.totalRows) : 0;
+                if (statusFilter === 'success') {
+                    matchesStatus = successRate >= 95;
+                } else if (statusFilter === 'warning') {
+                    matchesStatus = successRate >= 50 && successRate < 95;
+                } else if (statusFilter === 'error') {
+                    matchesStatus = successRate < 50;
+                }
+            }
+            
+            // 日期过滤
+            let matchesDate = true;
+            if (dateFrom || dateTo) {
+                const sessionDate = new Date(session.importTime);
+                if (dateFrom) {
+                    matchesDate = matchesDate && sessionDate >= new Date(dateFrom);
+                }
+                if (dateTo) {
+                    const toDate = new Date(dateTo);
+                    toDate.setHours(23, 59, 59, 999);
+                    matchesDate = matchesDate && sessionDate <= toDate;
+                }
+            }
+            
+            return matchesSearch && matchesStatus && matchesDate;
+        });
+        
+        renderSessions(filteredSessions);
+    }
+    
+    // 渲染导入批次列表
+    function renderSessions(sessions) {
+        const tbody = document.getElementById('sessions-tbody');
+        
+        if (sessions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="12" class="muted">暂无数据</td></tr>';
+            return;
+        }
+        
+        const rows = sessions.map(session => {
+            const successRate = session.totalRows > 0 ? 
+                (session.insertedRows * 100 / session.totalRows) : 0;
+            const status = getSessionStatus(successRate);
+            const isSelected = selectedSessions.has(session.id);
+            
+            return `
+                <tr class="${isSelected ? 'selected' : ''}">
+                    <td>
+                        <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                               onchange="toggleSessionSelection(${session.id})">
+                    </td>
+                    <td>${session.id}</td>
+                    <td title="${session.fileName || '-'}">${truncateText(session.fileName || '-', 30)}</td>
+                    <td>${session.sourceType || '-'}</td>
+                    <td>${session.totalRows || 0}</td>
+                    <td class="success">${session.insertedRows || 0}</td>
+                    <td class="warning">${session.duplicateRows || 0}</td>
+                    <td class="error">${session.errorRows || 0}</td>
+                    <td>
+                        <span class="success-rate ${successRate >= 95 ? 'success' : successRate >= 50 ? 'warning' : 'error'}">
+                            ${successRate.toFixed(1)}%
+                        </span>
+                    </td>
+                    <td>
+                        <span class="status-badge ${status.class}">${status.text}</span>
+                    </td>
+                    <td title="${formatDateTime(session.importTime)}">${formatDate(session.importTime)}</td>
+                    <td>
+                        <a href="#" onclick="showSessionDetail(${session.id})" class="action-link">详情</a>
+                        <span class="muted"> | </span>
+                        <a href="#" onclick="deleteSession(${session.id})" class="action-link danger">删除</a>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+        
+        tbody.innerHTML = rows;
+        updateBatchActions();
+    }
+    
+    // 获取批次状态
+    function getSessionStatus(successRate) {
+        if (successRate >= 95) {
+            return { class: 'success', text: '成功' };
+        } else if (successRate >= 50) {
+            return { class: 'warning', text: '部分成功' };
+        } else {
+            return { class: 'error', text: '失败' };
+        }
+    }
+    
+    // 截断文本
+    function truncateText(text, maxLength) {
+        if (text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    }
+    
+    // 格式化日期
+    function formatDate(dateTimeStr) {
+        if (!dateTimeStr) return '-';
+        try {
+            const date = new Date(dateTimeStr);
+            return date.toLocaleDateString('zh-CN');
+        } catch (e) {
+            return dateTimeStr;
+        }
+    }
+    
+    // 显示批次详情
+    async function showSessionDetail(sessionId) {
+        try {
+            const result = await fetchJson(`${api.sessions}/${sessionId}`);
+            if (result.code === 1) {
+                const session = result.data;
+                currentSessionId = sessionId;
+                
+                // 显示批次基本信息
+                const detailContent = `
+                    <div class="form-grid">
+                        <label>批次ID: ${session.id}</label>
+                        <label>文件名: ${session.fileName || '-'}</label>
+                        <label>文件类型: ${session.sourceType || '-'}</label>
+                        <label>总行数: ${session.totalRows || 0}</label>
+                        <label>成功导入: ${session.insertedRows || 0}</label>
+                        <label>重复行数: ${session.duplicateRows || 0}</label>
+                        <label>错误行数: ${session.errorRows || 0}</label>
+                        <label>导入时间: ${formatDateTime(session.importTime)}</label>
+                    </div>
+                    <div style="margin-top: 16px;">
+                        <button class="btn" onclick="loadSessionBills(${sessionId})">查看账单数据</button>
+                    </div>
+                    <div id="session-bills" style="margin-top: 16px;"></div>
+                `;
+                
+                document.getElementById('session-detail-content').innerHTML = detailContent;
+                document.getElementById('btn-delete-session').style.display = 'inline-block';
+                document.getElementById('btn-reprocess-session').style.display = 'inline-block';
+                openDialog('dlg-session-detail');
+            }
+        } catch (error) {
+            console.error('获取批次详情失败:', error);
+            toast('获取批次详情失败：' + error.message);
+        }
+    }
+    
+    // 加载批次账单数据
+    async function loadSessionBills(sessionId) {
+        try {
+            const result = await fetchJson(`${api.sessions}/${sessionId}/bills`);
+            if (result.code === 1) {
+                const bills = result.data || [];
+                renderSessionBills(bills);
+            }
+        } catch (error) {
+            console.error('获取批次账单失败:', error);
+        }
+    }
+    
+    // 渲染批次账单数据
+    function renderSessionBills(bills) {
+        const container = document.getElementById('session-bills');
+        
+        if (bills.length === 0) {
+            container.innerHTML = '<p class="muted">该批次暂无账单数据</p>';
+            return;
+        }
+        
+        const table = `
+            <table style="margin-top: 16px;">
+                <thead>
+                    <tr>
+                        <th>行号</th>
+                        <th>交易时间</th>
+                        <th>交易类型</th>
+                        <th>交易对方</th>
+                        <th>金额</th>
+                        <th>分类</th>
+                        <th>状态</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${bills.map(bill => `
+                        <tr>
+                            <td>${bill.row_index || '-'}</td>
+                            <td>${formatDateTime(bill.transaction_time)}</td>
+                            <td>${bill.transaction_type || '-'}</td>
+                            <td>${bill.counterparty || '-'}</td>
+                            <td>${toCurrency(bill.amount || 0)}</td>
+                            <td>${bill.first_category_name || ''}${bill.second_category_name ? ' > ' + bill.second_category_name : ''}</td>
+                            <td>${bill.status || '-'}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        
+        container.innerHTML = table;
+    }
+    
+    // 删除批次
+    async function deleteSession(sessionId) {
+        if (!confirm('确认删除该导入批次？这将删除该批次的所有账单数据，此操作不可恢复！')) {
+            return;
+        }
+        
+        try {
+            const result = await fetchJson(`${api.sessions}/${sessionId}`, { method: 'DELETE' });
+            if (result.code === 1) {
+                toast('删除成功');
+                closeDialog('dlg-session-detail');
+                loadImportSessions();
+                loadStatistics();
+            } else {
+                toast('删除失败：' + result.msg);
+            }
+        } catch (error) {
+            console.error('删除批次失败:', error);
+            toast('删除失败：' + error.message);
+        }
+    }
+    
+    // 重新处理批次
+    async function reprocessSession(sessionId) {
+        if (!confirm('确认重新处理该导入批次？')) {
+            return;
+        }
+        
+        try {
+            const result = await fetchJson(`${api.sessions}/${sessionId}/reprocess`, { method: 'POST' });
+            if (result.code === 1) {
+                toast('重新处理完成');
+                loadImportSessions();
+                loadStatistics();
+            } else {
+                toast('重新处理失败：' + result.msg);
+            }
+        } catch (error) {
+            console.error('重新处理失败:', error);
+            toast('重新处理失败：' + error.message);
+        }
+    }
+    
+    // 加载趋势分析
+    async function loadImportTrends() {
+        try {
+            const result = await fetchJson(`${api.trends}?days=30`);
+            if (result.code === 1) {
+                renderTrends(result.data);
+                openDialog('dlg-trends');
+            }
+        } catch (error) {
+            console.error('加载趋势分析失败:', error);
+            toast('加载趋势分析失败：' + error.message);
+        }
+    }
+    
+    // 渲染趋势分析
+    function renderTrends(trends) {
+        const content = document.getElementById('trends-content');
+        
+        const trendData = trends.trend_data || [];
+        const totalSessions = trends.total_sessions || 0;
+        const totalRows = trends.total_rows || 0;
+        const totalInserted = trends.total_inserted || 0;
+        
+        let tableHtml = `
+            <div class="form-grid">
+                <label>分析天数: ${trends.days}天</label>
+                <label>总批次: ${totalSessions}</label>
+                <label>总行数: ${totalRows.toLocaleString()}</label>
+                <label>成功导入: ${totalInserted.toLocaleString()}</label>
+                <label>平均每日批次: ${trends.average_sessions_per_day || 0}</label>
+            </div>
+        `;
+        
+        if (trendData.length > 0) {
+            tableHtml += `
+                <table style="margin-top: 16px;">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>批次数量</th>
+                            <th>总行数</th>
+                            <th>成功导入</th>
+                            <th>重复行</th>
+                            <th>错误行</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${trendData.map(day => `
+                            <tr>
+                                <td>${day.import_date}</td>
+                                <td>${day.session_count || 0}</td>
+                                <td>${day.total_rows || 0}</td>
+                                <td>${day.inserted_rows || 0}</td>
+                                <td>${day.duplicate_rows || 0}</td>
+                                <td>${day.error_rows || 0}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } else {
+            tableHtml += '<p class="muted">暂无趋势数据</p>';
+        }
+        
+        content.innerHTML = tableHtml;
+    }
+    
+    // 格式化日期时间
+    function formatDateTime(dateTimeStr) {
+        if (!dateTimeStr) return '-';
+        try {
+            const date = new Date(dateTimeStr);
+            return date.toLocaleString('zh-CN');
+        } catch (e) {
+            return dateTimeStr;
+        }
+    }
+    
+    // 选择功能
+    function toggleSessionSelection(sessionId) {
+        if (selectedSessions.has(sessionId)) {
+            selectedSessions.delete(sessionId);
+        } else {
+            selectedSessions.add(sessionId);
+        }
+        renderSessions(filteredSessions);
+    }
+    
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('select-all-sessions');
+        if (selectAll.checked) {
+            filteredSessions.forEach(session => selectedSessions.add(session.id));
+        } else {
+            selectedSessions.clear();
+        }
+        renderSessions(filteredSessions);
+    }
+    
+    function clearSelection() {
+        selectedSessions.clear();
+        document.getElementById('select-all-sessions').checked = false;
+        renderSessions(filteredSessions);
+    }
+    
+    function updateBatchActions() {
+        const batchActions = document.getElementById('batch-actions');
+        const selectedCount = document.getElementById('selected-count');
+        
+        if (selectedSessions.size > 0) {
+            batchActions.style.display = 'block';
+            selectedCount.textContent = `已选择 ${selectedSessions.size} 个批次`;
+        } else {
+            batchActions.style.display = 'none';
+        }
+        
+        // 更新全选状态
+        const selectAll = document.getElementById('select-all-sessions');
+        if (filteredSessions.length === 0) {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+        } else if (selectedSessions.size === filteredSessions.length) {
+            selectAll.checked = true;
+            selectAll.indeterminate = false;
+        } else if (selectedSessions.size > 0) {
+            selectAll.checked = false;
+            selectAll.indeterminate = true;
+        } else {
+            selectAll.checked = false;
+            selectAll.indeterminate = false;
+        }
+    }
+    
+    // 批量操作
+    async function batchReprocess() {
+        if (selectedSessions.size === 0) {
+            toast('请先选择要重新处理的批次');
+            return;
+        }
+        
+        if (!confirm(`确认重新处理选中的 ${selectedSessions.size} 个批次？`)) {
+            return;
+        }
+        
+        try {
+            const promises = Array.from(selectedSessions).map(id => 
+                fetchJson(`${api.sessions}/${id}/reprocess`, { method: 'POST' })
+            );
+            
+            const results = await Promise.allSettled(promises);
+            const successCount = results.filter(r => r.status === 'fulfilled' && r.value.code === 1).length;
+            
+            toast(`重新处理完成：成功 ${successCount} 个，失败 ${selectedSessions.size - successCount} 个`);
+            clearSelection();
+            loadImportSessions();
+            loadStatistics();
+        } catch (error) {
+            console.error('批量重新处理失败:', error);
+            toast('批量重新处理失败：' + error.message);
+        }
+    }
+    
+    async function batchDelete() {
+        if (selectedSessions.size === 0) {
+            toast('请先选择要删除的批次');
+            return;
+        }
+        
+        if (!confirm(`确认删除选中的 ${selectedSessions.size} 个批次？这将删除所有相关账单数据，此操作不可恢复！`)) {
+            return;
+        }
+        
+        try {
+            const promises = Array.from(selectedSessions).map(id => 
+                fetchJson(`${api.sessions}/${id}`, { method: 'DELETE' })
+            );
+            
+            const results = await Promise.allSettled(promises);
+            const successCount = results.filter(r => r.status === 'fulfilled' && r.value.code === 1).length;
+            
+            toast(`删除完成：成功 ${successCount} 个，失败 ${selectedSessions.size - successCount} 个`);
+            clearSelection();
+            loadImportSessions();
+            loadStatistics();
+        } catch (error) {
+            console.error('批量删除失败:', error);
+            toast('批量删除失败：' + error.message);
+        }
+    }
+    
+    function batchExport() {
+        if (selectedSessions.size === 0) {
+            toast('请先选择要导出的批次');
+            return;
+        }
+        
+        const selectedSessionsArray = Array.from(selectedSessions);
+        const csvData = generateCSV(selectedSessionsArray);
+        downloadCSV(csvData, `import-sessions-${new Date().toISOString().split('T')[0]}.csv`);
+        toast(`已导出 ${selectedSessions.size} 个批次的数据`);
+    }
+    
+    function exportSessions() {
+        const csvData = generateCSV(filteredSessions.map(s => s.id));
+        downloadCSV(csvData, `all-import-sessions-${new Date().toISOString().split('T')[0]}.csv`);
+        toast('已导出所有批次数据');
+    }
+    
+    function generateCSV(sessionIds) {
+        const headers = ['批次ID', '文件名', '文件类型', '总行数', '成功导入', '重复行', '错误行', '成功率', '导入时间'];
+        const rows = sessionIds.map(id => {
+            const session = allSessions.find(s => s.id === id);
+            if (!session) return null;
+            
+            const successRate = session.totalRows > 0 ? 
+                (session.insertedRows * 100 / session.totalRows).toFixed(1) : '0.0';
+            
+            return [
+                session.id,
+                session.fileName || '',
+                session.sourceType || '',
+                session.totalRows || 0,
+                session.insertedRows || 0,
+                session.duplicateRows || 0,
+                session.errorRows || 0,
+                successRate + '%',
+                formatDateTime(session.importTime)
+            ];
+        }).filter(row => row !== null);
+        
+        return [headers, ...rows].map(row => 
+            row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+        ).join('\n');
+    }
+    
+    function downloadCSV(csvData, filename) {
+        const blob = new Blob(['\ufeff' + csvData], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+    }
+    
+    // 工具函数
+    function showLoading(elementId, message) {
+        const element = document.getElementById(elementId);
+        element.innerHTML = `<tr><td colspan="12" class="muted">${message}</td></tr>`;
+    }
+    
+    function showError(elementId, message) {
+        const element = document.getElementById(elementId);
+        element.innerHTML = `<tr><td colspan="12" class="error">${message}</td></tr>`;
+    }
+    
+    // 绑定事件
+    document.getElementById('btn-delete-session').addEventListener('click', () => deleteSession(currentSessionId));
+    document.getElementById('btn-reprocess-session').addEventListener('click', () => reprocessSession(currentSessionId));
+    
+    // 设置默认日期范围（本月第一天到今天）
+    function setDefaultDateRange() {
+        const today = new Date();
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        
+        // 格式化日期为 YYYY-MM-DD
+        const formatDate = (date) => {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+        
+        // 设置默认日期值
+        document.getElementById('filter-date-from').value = formatDate(firstDayOfMonth);
+        document.getElementById('filter-date-to').value = formatDate(today);
+    }
+    
+    // 重置日期过滤器
+    function resetDateFilter() {
+        setDefaultDateRange();
+        filterSessions();
+        toast('日期过滤器已重置为本月范围');
+    }
+    
+    // 页面加载时初始化
+    window.addEventListener('load', () => {
+        setDefaultDateRange();
+        loadStatistics();
+        loadImportSessions();
+    });
+    </script>
+</body>
+</html>

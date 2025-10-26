@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>规则功能测试 - 微信财务监控系统</title>
+    <link rel="stylesheet" href="/styles.css">
+    <style>
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .test-success { background: rgba(52, 211, 153, 0.1); border: 1px solid var(--ok); }
+        .test-error { background: rgba(248, 113, 113, 0.1); border: 1px solid var(--danger); }
+        .test-info { background: rgba(56, 189, 248, 0.1); border: 1px solid var(--brand-2); }
+        .rule-item {
+            padding: 8px;
+            margin: 4px 0;
+            background: rgba(255,255,255,0.03);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <h1>规则功能测试</h1>
+        <nav class="nav">
+            <a href="/index.html">首页</a>
+            <a href="/rules.html">规则管理</a>
+        </nav>
+    </header>
+    
+    <main class="container">
+        <div class="test-section">
+            <h3>1. 测试获取所有规则</h3>
+            <button class="btn" onclick="testGetAllRules()">测试获取规则</button>
+            <div id="result-get-all" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>2. 测试创建规则</h3>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                <label>规则名称
+                    <input type="text" id="test-rule-name" value="测试规则">
+                </label>
+                <label>关键词
+                    <input type="text" id="test-keyword" value="测试关键词">
+                </label>
+                <label>匹配类型
+                    <select id="test-match-type">
+                        <option value="1">包含</option>
+                        <option value="2">完全等于</option>
+                        <option value="3">正则表达式</option>
+                        <option value="4">前缀匹配</option>
+                        <option value="5">后缀匹配</option>
+                    </select>
+                </label>
+            </div>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                <label>一级分类ID
+                    <input type="number" id="test-first-category" value="1">
+                </label>
+                <label>二级分类ID
+                    <input type="number" id="test-second-category" value="1">
+                </label>
+                <label>优先级
+                    <input type="number" id="test-priority" value="100">
+                </label>
+            </div>
+            <button class="btn" onclick="testCreateRule()">测试创建规则</button>
+            <div id="result-create" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>3. 测试规则匹配</h3>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                <label>规则ID
+                    <input type="number" id="test-rule-id" placeholder="输入要测试的规则ID">
+                </label>
+                <label>测试文本
+                    <input type="text" id="test-text" value="美团外卖订单">
+                </label>
+            </div>
+            <button class="btn" onclick="testRuleMatch()">测试规则匹配</button>
+            <div id="result-test" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>4. 测试更新规则</h3>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                <label>规则ID
+                    <input type="number" id="update-rule-id" placeholder="输入要更新的规则ID">
+                </label>
+                <label>新名称
+                    <input type="text" id="update-rule-name" value="更新后的规则名称">
+                </label>
+            </div>
+            <button class="btn" onclick="testUpdateRule()">测试更新规则</button>
+            <div id="result-update" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>5. 测试删除规则</h3>
+            <div class="form-grid" style="grid-template-columns: 1fr 1fr;">
+                <label>规则ID
+                    <input type="number" id="delete-rule-id" placeholder="输入要删除的规则ID">
+                </label>
+                <label>
+                    <button class="btn" onclick="testDeleteRule()">测试删除规则</button>
+                </label>
+            </div>
+            <div id="result-delete" class="test-result" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>6. 规则列表展示</h3>
+            <button class="btn" onclick="showRulesList()">显示规则列表</button>
+            <div id="rules-list" style="margin-top: 10px;"></div>
+        </div>
+    </main>
+
+    <script src="/utils.js"></script>
+    <script>
+        const apiBase = '/api/rules';
+        
+        function showResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `test-result test-${type}`;
+            element.textContent = content;
+        }
+        
+        async function testGetAllRules() {
+            try {
+                const result = await fetchJson(apiBase);
+                showResult('result-get-all', 
+                    `状态码: ${result.code}\n消息: ${result.msg || '成功'}\n规则数量: ${result.data ? result.data.length : 0}\n\n前5条规则:\n${JSON.stringify(result.data?.slice(0, 5), null, 2)}`, 
+                    result.code === 1 ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult('result-get-all', `请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testCreateRule() {
+            try {
+                const payload = {
+                    ruleName: document.getElementById('test-rule-name').value,
+                    description: '测试创建的规则',
+                    keyword: document.getElementById('test-keyword').value,
+                    matchType: Number(document.getElementById('test-match-type').value),
+                    firstCategoryId: Number(document.getElementById('test-first-category').value),
+                    secondCategoryId: Number(document.getElementById('test-second-category').value),
+                    priority: Number(document.getElementById('test-priority').value),
+                    isEnabled: 1,
+                    matchFields: 'counterparty,product,remark'
+                };
+                
+                const result = await fetchJson(apiBase, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                
+                showResult('result-create', 
+                    `状态码: ${result.code}\n消息: ${result.msg || '成功'}\n创建结果: ${JSON.stringify(result.data, null, 2)}`, 
+                    result.code === 1 ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult('result-create', `请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testRuleMatch() {
+            try {
+                const ruleId = document.getElementById('test-rule-id').value;
+                const testText = document.getElementById('test-text').value;
+                
+                if (!ruleId) {
+                    showResult('result-test', '请输入规则ID', 'error');
+                    return;
+                }
+                
+                const result = await fetchJson(`${apiBase}/${ruleId}/test`, {
+                    method: 'POST',
+                    body: JSON.stringify({ text: testText })
+                });
+                
+                showResult('result-test', 
+                    `状态码: ${result.code}\n消息: ${result.msg || '成功'}\n测试结果: ${JSON.stringify(result.data, null, 2)}`, 
+                    result.code === 1 ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult('result-test', `请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testUpdateRule() {
+            try {
+                const ruleId = document.getElementById('update-rule-id').value;
+                const newName = document.getElementById('update-rule-name').value;
+                
+                if (!ruleId) {
+                    showResult('result-update', '请输入规则ID', 'error');
+                    return;
+                }
+                
+                const payload = {
+                    ruleName: newName,
+                    description: '更新后的规则描述',
+                    keyword: '更新后的关键词',
+                    matchType: 1,
+                    firstCategoryId: 1,
+                    secondCategoryId: 1,
+                    priority: 100,
+                    isEnabled: 1,
+                    matchFields: 'counterparty,product,remark'
+                };
+                
+                const result = await fetchJson(`${apiBase}/${ruleId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(payload)
+                });
+                
+                showResult('result-update', 
+                    `状态码: ${result.code}\n消息: ${result.msg || '成功'}\n更新结果: ${JSON.stringify(result.data, null, 2)}`, 
+                    result.code === 1 ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult('result-update', `请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testDeleteRule() {
+            try {
+                const ruleId = document.getElementById('delete-rule-id').value;
+                
+                if (!ruleId) {
+                    showResult('result-delete', '请输入规则ID', 'error');
+                    return;
+                }
+                
+                if (!confirm(`确认删除规则ID ${ruleId}？`)) {
+                    return;
+                }
+                
+                const result = await fetchJson(`${apiBase}/${ruleId}`, {
+                    method: 'DELETE'
+                });
+                
+                showResult('result-delete', 
+                    `状态码: ${result.code}\n消息: ${result.msg || '成功'}`, 
+                    result.code === 1 ? 'success' : 'error'
+                );
+            } catch (error) {
+                showResult('result-delete', `请求失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function showRulesList() {
+            try {
+                const result = await fetchJson(apiBase);
+                const rulesList = document.getElementById('rules-list');
+                
+                if (result.code === 1 && result.data) {
+                    const rules = result.data;
+                    let html = `<h4>规则列表 (共${rules.length}条)</h4>`;
+                    
+                    rules.slice(0, 10).forEach(rule => {
+                        html += `
+                            <div class="rule-item">
+                                <strong>${rule.ruleName}</strong> (ID: ${rule.id})<br>
+                                关键词: ${rule.keyword} | 匹配类型: ${getMatchTypeName(rule.matchType)}<br>
+                                分类: ${rule.firstCategoryId}-${rule.secondCategoryId} | 优先级: ${rule.priority}<br>
+                                匹配次数: ${rule.matchCount || 0} | 成功率: ${(rule.successRate || 0).toFixed(1)}%<br>
+                                状态: ${rule.isEnabled ? '启用' : '禁用'}
+                            </div>
+                        `;
+                    });
+                    
+                    if (rules.length > 10) {
+                        html += `<p>... 还有 ${rules.length - 10} 条规则</p>`;
+                    }
+                    
+                    rulesList.innerHTML = html;
+                } else {
+                    rulesList.innerHTML = `<p>获取规则失败: ${result.msg || '未知错误'}</p>`;
+                }
+            } catch (error) {
+                document.getElementById('rules-list').innerHTML = `<p>请求失败: ${error.message}</p>`;
+            }
+        }
+        
+        function getMatchTypeName(matchType) {
+            const types = {
+                1: '包含',
+                2: '完全等于',
+                3: '正则表达式',
+                4: '前缀匹配',
+                5: '后缀匹配'
+            };
+            return types[matchType] || '未知';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.susu.mapper.WechatBillMapper">
+
+    <!-- 插入微信账单记录（动态 SQL，自动忽略 null 或空值字段） -->
+<!-- 插入微信账单记录（基于更新后字段） -->
+<insert id="insertWechatBill" parameterType="com.susu.domain.entity.WechatBill">
+    INSERT INTO wechat_bill (
+        <trim prefix="" suffix="" suffixOverrides=",">
+            <!-- 自增ID通常无需手动插入，若需要则保留 -->
+            <if test="id != null">id,</if>
+            <!-- 金额（必传，通常非空） -->
+            <if test="amount != null">amount,</if>
+            <!-- 状态（如"成功"/"失败"） -->
+            <if test="status != null and status != ''">status,</if>
+            <!-- 交易对方（商户/好友昵称） -->
+            <if test="counterparty != null and counterparty != ''">counterparty,</if>
+            <!-- 去重哈希（必传，非空） -->
+            <if test="billHash != null and billHash != ''">bill_hash,</if>
+            <!-- 支付方式（如"微信零钱"） -->
+            <if test="paymentMethod != null and paymentMethod != ''">payment_method,</if>
+            <!-- 商品说明 -->
+            <if test="product != null and product != ''">product,</if>
+            <!-- 行号（Excel中的行索引） -->
+            <if test="rowIndex != null">row_index,</if>
+            <!-- 交易单号（唯一标识） -->
+            <if test="transactionId != null and transactionId != ''">transaction_id,</if>
+            <!-- 交易类型（如"转账"/"红包"） -->
+            <if test="transactionType != null and transactionType != ''">transaction_type,</if>
+            <!-- 交易时间 -->
+            <if test="transactionTime != null">transaction_time,</if>
+            <!-- 分类（自动/手动分类结果） -->
+            <if test="firstCategoryId != null and firstCategoryId != ''">first_category_id,</if>
+            <if test="secondCategoryId != null and secondCategoryId != ''">second_category_id,</if>
+            <!-- 商品类型（细分类型） -->
+            <if test="productType != null and productType != ''">product_type,</if>
+            <!-- 备注 -->
+            <if test="remark != null and remark != ''">remark,</if>
+            <!-- 商户单号（非必选） -->
+            <if test="merchantOrderId != null and merchantOrderId != ''">merchant_order_id,</if>
+            <!-- 会话ID（关联导入会话） -->
+            <if test="sessionId != null and sessionId != ''">session_id,</if>
+            <!-- 导入时间（记录入库时间） -->
+            <if test="importTime != null">import_time,</if>
+        </trim>
+    ) VALUES (
+        <trim prefix="" suffix="" suffixOverrides=",">
+            <if test="id != null">#{id},</if>
+            <if test="amount != null">#{amount},</if>
+            <if test="status != null and status != ''">#{status},</if>
+            <if test="counterparty != null and counterparty != ''">#{counterparty},</if>
+            <if test="billHash != null and billHash != ''">#{billHash},</if>
+            <if test="paymentMethod != null and paymentMethod != ''">#{paymentMethod},</if>
+            <if test="product != null and product != ''">#{product},</if>
+            <if test="rowIndex != null">#{rowIndex},</if>
+            <if test="transactionId != null and transactionId != ''">#{transactionId},</if>
+            <if test="transactionType != null and transactionType != ''">#{transactionType},</if>
+            <if test="transactionTime != null">#{transactionTime},</if>
+            <if test="firstCategoryId != null and firstCategoryId != ''">#{firstCategoryId},</if>
+            <if test="secondCategoryId != null and secondCategoryId != ''">#{secondCategoryId},</if>
+            <if test="productType != null and productType != ''">#{productType},</if>
+            <if test="remark != null and remark != ''">#{remark},</if>
+            <if test="merchantOrderId != null and merchantOrderId != ''">#{merchantOrderId},</if>
+            <if test="sessionId != null and sessionId != ''">#{sessionId},</if>
+            <if test="importTime != null">#{importTime},</if>
+        </trim>
+    )
+</insert>
+    <select id="pageQuery" resultType="com.susu.domain.vo.BillPreviewVO">
+
+        SELECT
+            b.row_index AS rowIndex,
+            <!-- 时间格式化：转为 "yyyy-MM-dd HH:mm:ss" 字符串 -->
+            DATE_FORMAT(b.transaction_time, '%Y-%m-%d %H:%i:%s') AS occurredAt,
+            b.product_type AS recordType,
+            -- 关联分类表查询分类名称（优先显示二级分类，如果没有则显示一级分类）
+            CASE 
+                WHEN c2.category_name IS NOT NULL THEN c2.category_name
+                WHEN c1.category_name IS NOT NULL THEN c1.category_name
+                ELSE ''
+            END AS categoryName,
+            -- 金额格式化：保留两位小数（根据实际需求调整）
+            FORMAT(b.amount, 2) AS amount,
+            b.payment_method AS paymentMethod,
+            IFNULL(b.counterparty, '') AS merchant,
+            IFNULL(b.remark, '') AS note,
+            b.status AS status
+        FROM
+            wechat_bill b
+        -- 左连接一级分类表
+        LEFT JOIN bill_category c1 ON b.first_category_id = c1.id
+        -- 左连接二级分类表
+        LEFT JOIN bill_category c2 ON b.second_category_id = c2.id
+        <where>
+    <!-- 1. 交易类型筛选 -->
+    <if test="type != null and type != ''">
+        AND b.product_type = #{type}
+    </if>
+
+    <!-- 2. 开始日期筛选 -->
+    <if test="from != null and from != ''">
+        AND b.transaction_time >= #{from}
+    </if>
+
+    <!-- 3. 结束日期筛选 -->
+    <if test="to != null and to != ''">
+        AND b.transaction_time &lt;= CONCAT(#{to}, ' 23:59:59')
+    </if>
+
+    <!-- 4. 关键词筛选 -->
+    <if test="text != null and text != ''">
+        AND (
+            b.merchant_order_id LIKE CONCAT('%', #{text}, '%')
+            OR b.remark LIKE CONCAT('%', #{text}, '%')
+        )
+    </if>
+
+    <!-- 5. 分类筛选（修改后：匹配一级或二级分类ID） -->
+    <if test="categoryId != null and categoryId != ''">
+        AND (
+            b.first_category_id = #{categoryId}
+            OR b.second_category_id = #{categoryId}
+        )
+    </if>
+</where>
+        <!-- 按时间倒序排序（最新的记录在前） -->
+        ORDER BY b.transaction_time DESC
+
+    </select>
+
+    <!-- 按季度统计收支数据 -->
+    <select id="getQuarterlyStatistics" resultType="map">
+        SELECT 
+            CONCAT(#{year}, '-Q', quarterNum) as quarter,
+            quarterNum,
+            income,
+            expense
+        FROM (
+            SELECT 
+                QUARTER(transaction_time) as quarterNum,
+                COALESCE(SUM(CASE WHEN product_type = '收入' THEN amount ELSE 0 END), 0) as income,
+                COALESCE(SUM(CASE WHEN product_type = '支出' THEN amount ELSE 0 END), 0) as expense
+            FROM wechat_bill
+            WHERE YEAR(transaction_time) = #{year} AND status = '支付成功'
+            GROUP BY QUARTER(transaction_time)
+        ) t
+        ORDER BY quarterNum ASC
+    </select>
+
+</mapper>

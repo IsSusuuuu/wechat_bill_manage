@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>财务分析报表 - 微信财务监控系统</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <script>
+        // 确保插件正确加载
+        console.log('ChartDataLabels plugin loaded:', typeof ChartDataLabels !== 'undefined');
+    </script>
+    <style>
+        :root {
+            --apple-bg: #f5f5f7;
+            --apple-card: #ffffff;
+            --apple-text: #1d1d1f;
+            --apple-text-secondary: #86868b;
+            --apple-border: #d2d2d7;
+            --apple-blue: #007aff;
+            --apple-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+            --apple-shadow-hover: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            background: var(--apple-bg);
+            color: var(--apple-text);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+        }
+
+        .reports-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        .reports-container h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--apple-text);
+            margin-bottom: 32px;
+            letter-spacing: -0.5px;
+        }
+
+        .chart-section {
+            background: var(--apple-card);
+            border-radius: 20px;
+            padding: 32px;
+            margin-bottom: 24px;
+            box-shadow: var(--apple-shadow);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .chart-section:hover {
+            box-shadow: var(--apple-shadow-hover);
+        }
+
+        .chart-header {
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .chart-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--apple-text);
+            letter-spacing: -0.3px;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .chart-controls select,
+        .chart-controls input {
+            padding: 10px 16px;
+            border: 1px solid var(--apple-border);
+            border-radius: 10px;
+            font-size: 14px;
+            background: var(--apple-card);
+            color: var(--apple-text);
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .chart-controls select:focus,
+        .chart-controls input:focus {
+            outline: none;
+            border-color: var(--apple-blue);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+        }
+
+        .chart-controls button {
+            padding: 10px 20px;
+            background: var(--apple-blue);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            letter-spacing: -0.2px;
+        }
+
+        .chart-controls button:hover {
+            background: #0051d5;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+        }
+
+        .chart-controls button:active {
+            transform: translateY(0);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            margin-top: 24px;
+        }
+
+        .chart-note {
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--apple-text-secondary);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 40px;
+            color: var(--apple-text-secondary);
+            font-size: 15px;
+        }
+
+        .error {
+            text-align: center;
+            padding: 60px 40px;
+            color: #ff3b30;
+            font-size: 15px;
+        }
+
+        /* Apple风格导航栏 */
+        .app-header {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .app-header h1 {
+            color: var(--apple-text);
+        }
+
+        .nav a {
+            color: var(--apple-text-secondary);
+            transition: color 0.2s ease;
+        }
+
+        .nav a:hover {
+            color: var(--apple-text);
+        }
+
+        .nav a.active {
+            color: var(--apple-blue);
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .reports-container {
+                padding: 20px 16px;
+            }
+
+            .chart-section {
+                padding: 20px;
+                border-radius: 16px;
+            }
+
+            .chart-title {
+                font-size: 20px;
+            }
+
+            .chart-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .chart-controls {
+                width: 100%;
+            }
+
+            .chart-controls select,
+            .chart-controls input,
+            .chart-controls button {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <h1>微信财务监控系统</h1>
+        <nav class="nav">
+            <a href="/index.html">首页</a>
+            <a href="/categories.html">收支分类</a>
+            <a href="/rules.html">自动填充规则</a>
+            <a href="/import.html">账单导入</a>
+            <a href="/import-sessions.html">导入批次</a>
+            <a href="/reports.html" class="active">分析报表</a>
+        </nav>
+    </header>
+
+    <main class="reports-container">
+        <h2 style="margin-bottom: 24px;">财务分析报表</h2>
+
+        <!-- 月度收支折线图 -->
+        <section class="chart-section">
+            <div class="chart-header">
+                <h3 class="chart-title">月度收支趋势</h3>
+                <div class="chart-controls">
+                    <select id="monthly-year-select"></select>
+                    <button onclick="loadMonthlyChart()">查询</button>
+                </div>
+            </div>
+            <div id="monthly-chart-container" class="chart-container">
+                <div class="loading">加载中...</div>
+            </div>
+        </section>
+
+        <!-- 季度收支折线图 -->
+        <section class="chart-section">
+            <div class="chart-header">
+                <h3 class="chart-title">季度收支趋势</h3>
+                <div class="chart-controls">
+                    <select id="quarterly-year-select"></select>
+                    <button onclick="loadQuarterlyChart()">查询</button>
+                </div>
+            </div>
+            <div id="quarterly-chart-container" class="chart-container">
+                <div class="loading">加载中...</div>
+            </div>
+        </section>
+
+        <!-- 分类支出饼图 -->
+        <section class="chart-section">
+            <div class="chart-header">
+                <h3 class="chart-title">支出分类占比</h3>
+                <div class="chart-controls">
+                    <input type="date" id="category-start-date" placeholder="开始日期">
+                    <input type="date" id="category-end-date" placeholder="结束日期">
+                    <button onclick="loadCategoryChart()">查询</button>
+                </div>
+            </div>
+            <div id="category-chart-container" class="chart-container">
+                <div class="loading">加载中...</div>
+            </div>
+        </section>
+    </main>
+
+    <script src="/utils.js"></script>
+    <script>
+        // 注册 Chart.js datalabels 插件
+        Chart.register(ChartDataLabels);
+        
+        // 图表实例
+        let monthlyChart = null;
+        let quarterlyChart = null;
+        let categoryChart = null;
+
+        // 初始化日期范围（默认最近30天）
+        function initDates() {
+            const today = new Date();
+            const endDate = today.toISOString().split('T')[0];
+            const startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            
+            document.getElementById('category-start-date').value = startDate;
+            document.getElementById('category-end-date').value = endDate;
+        }
+
+        // 初始化年份选择器
+        function initYearSelectors() {
+            const currentYear = new Date().getFullYear();
+            const years = [];
+            // 生成最近5年的选项
+            for (let i = 0; i < 5; i++) {
+                years.push(currentYear - i);
+            }
+            
+            // 填充月度年份选择器
+            const monthlySelect = document.getElementById('monthly-year-select');
+            monthlySelect.innerHTML = years.map(year => `<option value="${year}">${year}年</option>`).join('');
+            
+            // 填充季度年份选择器
+            const quarterlySelect = document.getElementById('quarterly-year-select');
+            quarterlySelect.innerHTML = years.map(year => `<option value="${year}">${year}年</option>`).join('');
+        }
+
+        // 加载月度折线图
+        async function loadMonthlyChart() {
+            const year = document.getElementById('monthly-year-select').value;
+            const container = document.getElementById('monthly-chart-container');
+            
+            try {
+                container.innerHTML = '<div class="loading">加载中...</div>';
+                
+                const result = await fetchJson(`/api/reports/statistics/monthly?year=${year}`);
+                
+                if (result.code !== 1) {
+                    throw new Error(result.msg || '获取数据失败');
+                }
+
+                const data = result.data;
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="error">暂无数据</div>';
+                    return;
+                }
+
+                // 准备图表数据
+                const months = data.map(item => item.month);
+                const income = data.map(item => parseFloat(item.income || 0));
+                const expense = data.map(item => parseFloat(item.expense || 0));
+
+                // 销毁旧图表
+                if (monthlyChart) {
+                    monthlyChart.destroy();
+                }
+
+                // 创建新图表
+                container.innerHTML = '<canvas id="monthly-chart"></canvas>';
+                const ctx = document.getElementById('monthly-chart').getContext('2d');
+                
+                monthlyChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: months,
+                        datasets: [
+                            {
+                                label: '收入',
+                                data: income,
+                                borderColor: 'rgb(75, 192, 192)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                tension: 0.1
+                            },
+                            {
+                                label: '支出',
+                                data: expense,
+                                borderColor: 'rgb(255, 99, 132)',
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                tension: 0.1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + toCurrency(context.parsed.y);
+                                    }
+                                }
+                            },
+                            datalabels: {
+                                align: 'top',
+                                offset: 5,
+                                backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                                borderColor: 'rgba(0, 0, 0, 0.1)',
+                                borderRadius: 3,
+                                borderWidth: 0.5,
+                                padding: 3,
+                                color: '#333',
+                                font: {
+                                    size: 9,
+                                    weight: 'bold'
+                                },
+                                formatter: function(value) {
+                                    if (value === 0) return '';
+                                    return value.toLocaleString('zh-CN', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return toCurrency(value);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('加载月度图表失败:', error);
+                container.innerHTML = '<div class="error">加载失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 加载季度折线图
+        async function loadQuarterlyChart() {
+            const year = document.getElementById('quarterly-year-select').value;
+            const container = document.getElementById('quarterly-chart-container');
+            
+            try {
+                container.innerHTML = '<div class="loading">加载中...</div>';
+                
+                const result = await fetchJson(`/api/reports/statistics/quarterly?year=${year}`);
+                
+                if (result.code !== 1) {
+                    throw new Error(result.msg || '获取数据失败');
+                }
+
+                const data = result.data;
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="error">暂无数据</div>';
+                    return;
+                }
+
+                // 准备图表数据
+                const quarters = data.map(item => item.quarter);
+                const income = data.map(item => parseFloat(item.income || 0));
+                const expense = data.map(item => parseFloat(item.expense || 0));
+
+                // 销毁旧图表
+                if (quarterlyChart) {
+                    quarterlyChart.destroy();
+                }
+
+                // 创建新图表
+                container.innerHTML = '<canvas id="quarterly-chart"></canvas>';
+                const ctx = document.getElementById('quarterly-chart').getContext('2d');
+                
+                quarterlyChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: quarters,
+                        datasets: [
+                            {
+                                label: '收入',
+                                data: income,
+                                borderColor: 'rgb(75, 192, 192)',
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                tension: 0.1
+                            },
+                            {
+                                label: '支出',
+                                data: expense,
+                                borderColor: 'rgb(255, 99, 132)',
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                tension: 0.1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + toCurrency(context.parsed.y);
+                                    }
+                                }
+                            },
+                            datalabels: {
+                                align: 'top',
+                                offset: 5,
+                                backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                                borderColor: 'rgba(0, 0, 0, 0.1)',
+                                borderRadius: 3,
+                                borderWidth: 0.5,
+                                padding: 3,
+                                color: '#333',
+                                font: {
+                                    size: 9,
+                                    weight: 'bold'
+                                },
+                                formatter: function(value) {
+                                    if (value === 0) return '';
+                                    return value.toLocaleString('zh-CN', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return toCurrency(value);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('加载季度图表失败:', error);
+                container.innerHTML = '<div class="error">加载失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 加载分类饼图
+        async function loadCategoryChart() {
+            const startDate = document.getElementById('category-start-date').value;
+            const endDate = document.getElementById('category-end-date').value;
+            const container = document.getElementById('category-chart-container');
+            
+            if (!startDate || !endDate) {
+                alert('请选择日期范围');
+                return;
+            }
+
+            try {
+                container.innerHTML = '<div class="loading">加载中...</div>';
+                
+                const result = await fetchJson(`/api/reports/statistics/category?startDate=${startDate}&endDate=${endDate}`);
+                
+                if (result.code !== 1) {
+                    throw new Error(result.msg || '获取数据失败');
+                }
+
+                const data = result.data;
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="error">暂无数据</div>';
+                    return;
+                }
+
+                // 准备图表数据
+                const labels = data.map(item => item.categoryName);
+                const amounts = data.map(item => parseFloat(item.amount || 0));
+
+                // 生成颜色
+                const colors = generateColors(data.length);
+
+                // 销毁旧图表
+                if (categoryChart) {
+                    categoryChart.destroy();
+                }
+
+                // 创建新图表
+                container.innerHTML = '<canvas id="category-chart"></canvas>';
+                const ctx = document.getElementById('category-chart').getContext('2d');
+                
+                categoryChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: amounts,
+                            backgroundColor: colors
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = toCurrency(context.parsed || 0);
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                        return label + ': ' + value + ' (' + percentage + '%)';
+                                    }
+                                }
+                            },
+                            datalabels: {
+                                display: true,
+                                backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                                borderColor: 'rgba(0, 0, 0, 0.15)',
+                                borderRadius: 3,
+                                borderWidth: 0.5,
+                                padding: 4,
+                                font: {
+                                    size: 10,
+                                    weight: 'bold'
+                                },
+                                color: '#333',
+                                formatter: function(value, context) {
+                                    if (!context.chart || !context.chart.data || !context.dataset) return '';
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    if (total === 0) return '';
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    // 只显示百分比和金额
+                                    return percentage + '%\n¥' + value.toLocaleString('zh-CN', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('加载分类图表失败:', error);
+                container.innerHTML = '<div class="error">加载失败: ' + error.message + '</div>';
+            }
+        }
+
+        // 生成颜色数组
+        function generateColors(count) {
+            const colors = [];
+            for (let i = 0; i < count; i++) {
+                const hue = (i * 137.508) % 360; // 使用黄金角
+                colors.push(`hsl(${hue}, 70%, 60%)`);
+            }
+            return colors;
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            initYearSelectors();
+            initDates();
+            loadMonthlyChart();
+            loadQuarterlyChart();
+            loadCategoryChart();
+        };
+    </script>
+</body>
+</html>
