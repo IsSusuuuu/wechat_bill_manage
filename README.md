@@ -71,7 +71,7 @@
 
 1. **下载绿色版**
    ```
-   从Releases下载：WeChatFinance-Portable.zip
+   从Releases下载：wechat_bill_manage-V3.0.0.zip
    ```
 
 2. **解压并运行**
