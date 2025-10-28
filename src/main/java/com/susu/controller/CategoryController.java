@@ -34,6 +34,13 @@ public class CategoryController {
     public Result<List<BillCategoryVO>> getCategory() {
         List<BillCategory> allCategories = billCategoryService.getAllCategories();
         List<BillCategoryVO> categoryList = new ArrayList<>();
+        
+        // 创建一个 Map，方便根据 ID 快速查找分类
+        java.util.Map<Long, BillCategory> categoryMap = new java.util.HashMap<>();
+        for(BillCategory category : allCategories) {
+            categoryMap.put(category.getId(), category);
+        }
+        
         for(BillCategory category : allCategories) {
             BillCategoryVO vo = new BillCategoryVO();
             vo.setId(category.getId());
@@ -42,6 +49,15 @@ public class CategoryController {
             vo.setLevel(category.getLevel());
             vo.setSort(category.getSort());
             vo.setIsDefault(category.getIsDefault());
+            
+            // 查询并设置父分类名称
+            if(category.getParentId() != null) {
+                BillCategory parentCategory = categoryMap.get(category.getParentId());
+                if(parentCategory != null) {
+                    vo.setParentName(parentCategory.getCategoryName());
+                }
+            }
+            
             if(category.getCreateTime() != null) {
                 vo.setCreateTime(category.getCreateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
             }
@@ -150,6 +166,18 @@ public class CategoryController {
         vo.setLevel(category.getLevel());
         vo.setSort(category.getSort());
         vo.setIsDefault(category.getIsDefault());
+        
+        // 查询并设置父分类名称
+        if(category.getParentId() != null) {
+            List<BillCategory> allCategories = billCategoryService.getAllCategories();
+            for(BillCategory c : allCategories) {
+                if(c.getId().equals(category.getParentId())) {
+                    vo.setParentName(c.getCategoryName());
+                    break;
+                }
+            }
+        }
+        
         if(category.getCreateTime() != null) {
             vo.setCreateTime(category.getCreateTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         }

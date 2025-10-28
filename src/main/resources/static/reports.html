@@ -324,9 +324,9 @@
                 }
 
                 // 准备图表数据
-                const months = data.map(item => item.month);
-                const income = data.map(item => parseFloat(item.income || 0));
-                const expense = data.map(item => parseFloat(item.expense || 0));
+                const months = data.map(item => item.monthStr || item.monthstr || item.MONTHSTR);
+                const income = data.map(item => parseFloat(item.income || item.INCOME || 0));
+                const expense = data.map(item => parseFloat(item.expense || item.EXPENSE || 0));
 
                 // 销毁旧图表
                 if (monthlyChart) {
@@ -430,9 +430,9 @@
                 }
 
                 // 准备图表数据
-                const quarters = data.map(item => item.quarter);
-                const income = data.map(item => parseFloat(item.income || 0));
-                const expense = data.map(item => parseFloat(item.expense || 0));
+                const quarters = data.map(item => item.quarter || item.QUARTER);
+                const income = data.map(item => parseFloat(item.income || item.INCOME || 0));
+                const expense = data.map(item => parseFloat(item.expense || item.EXPENSE || 0));
 
                 // 销毁旧图表
                 if (quarterlyChart) {
@@ -542,8 +542,8 @@
                 }
 
                 // 准备图表数据
-                const labels = data.map(item => item.categoryName);
-                const amounts = data.map(item => parseFloat(item.amount || 0));
+                const labels = data.map(item => item.categoryName || item.CATEGORYNAME);
+                const amounts = data.map(item => parseFloat(item.amount || item.AMOUNT || 0));
 
                 // 生成颜色
                 const colors = generateColors(data.length);

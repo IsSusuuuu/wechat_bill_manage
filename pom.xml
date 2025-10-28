@@ -51,11 +51,20 @@
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
+        <!-- 使用 H2 数据库（零配置方案） -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        
+        <!-- 保留 MySQL 作为可选配置
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
+        -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -78,11 +87,11 @@
             <version>5.2.5</version> <!-- 使用最新稳定版 -->
         </dependency>
         <!-- PageHelper 核心依赖 -->
-<dependency>
-   <groupId>com.github.pagehelper</groupId>
-   <artifactId>pagehelper</artifactId>
-
-</dependency>
+        <dependency>
+            <groupId>com.github.pagehelper</groupId>
+            <artifactId>pagehelper</artifactId>
+            <version>6.0.0</version>
+        </dependency>
     </dependencies>
 
     <build>

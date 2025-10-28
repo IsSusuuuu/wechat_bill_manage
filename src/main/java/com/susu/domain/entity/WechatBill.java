@@ -23,7 +23,7 @@ public class WechatBill {
     private String merchantOrderId;  // 商户单号（对应“商户单号”列，非必选）
     private String remark;           // 备注（对应“备注”列，非必选）
 
-    private int id;             // 主键ID（自增）
+    private Integer id;             // 主键ID（自增）
     private Integer sessionId;        // 导入批次ID（对应 import_session.id）
     private Integer rowIndex;        // 导入行号（对应原始XLSX中的行号，从1开始）
     private String billHash;         // 账单哈希值（唯一标识一条账单，用于去重）

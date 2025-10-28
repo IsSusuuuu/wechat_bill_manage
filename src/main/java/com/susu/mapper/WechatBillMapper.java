@@ -57,14 +57,6 @@ public interface WechatBillMapper {
      * @param year 年份
      * @return 按月份统计的数据列表
      */
-    @Select("SELECT " +
-            "DATE_FORMAT(transaction_time, '%Y-%m') as month, " +
-            "COALESCE(SUM(CASE WHEN product_type = '收入' THEN amount ELSE 0 END), 0) as income, " +
-            "COALESCE(SUM(CASE WHEN product_type = '支出' THEN amount ELSE 0 END), 0) as expense " +
-            "FROM wechat_bill " +
-            "WHERE YEAR(transaction_time) = #{year} AND status = '支付成功' " +
-            "GROUP BY DATE_FORMAT(transaction_time, '%Y-%m') " +
-            "ORDER BY month ASC")
     List<Map<String, Object>> getMonthlyStatistics(@Param("year") int year);
     
     /**

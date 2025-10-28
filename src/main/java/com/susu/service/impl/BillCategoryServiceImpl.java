@@ -33,6 +33,7 @@ public class BillCategoryServiceImpl implements BillCategoryService {
         String counterparty = bill.getCounterparty() != null ? bill.getCounterparty() : "";
         String product = bill.getProduct() != null ? bill.getProduct() : "";
         String remark = bill.getRemark() != null ? bill.getRemark() : "";
+
         // 合并所有可能包含关键字的字段，统一匹配
         String content = counterparty + "|" + product + "|" + remark;
 
@@ -183,6 +184,39 @@ public class BillCategoryServiceImpl implements BillCategoryService {
     public PageResult pageQuery(CategoryQueryDTO queryDTO) {
         PageHelper.startPage(queryDTO.getPage(), queryDTO.getPageSize());
         Page<BillCategory> page = categoryMapper.pageQuery(queryDTO);
-        return new PageResult(page.getTotal(), page.getResult());
+        
+        // 转换为 VO，添加父分类名称
+        List<BillCategory> allCategories = categoryMapper.selectAll();
+        java.util.Map<Long, String> parentNameMap = new java.util.HashMap<>();
+        for(BillCategory category : allCategories) {
+            parentNameMap.put(category.getId(), category.getCategoryName());
+        }
+        
+        List<com.susu.domain.vo.BillCategoryVO> voList = new java.util.ArrayList<>();
+        for(BillCategory category : page.getResult()) {
+            com.susu.domain.vo.BillCategoryVO vo = new com.susu.domain.vo.BillCategoryVO();
+            vo.setId(category.getId());
+            vo.setName(category.getCategoryName());
+            vo.setParentId(category.getParentId());
+            if(category.getParentId() != null) {
+                vo.setParentName(parentNameMap.get(category.getParentId()));
+            }
+            vo.setLevel(category.getLevel());
+            vo.setSort(category.getSort());
+            vo.setIsDefault(category.getIsDefault());
+            if(category.getCreateTime() != null) {
+                vo.setCreateTime(category.getCreateTime().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            }
+            if(category.getType() == 0){
+                vo.setCategoryType("支出");
+            }else if(category.getType() == 1){
+                vo.setCategoryType("收入");
+            }else if(category.getType() == 2){
+                vo.setCategoryType("转账");
+            }
+            voList.add(vo);
+        }
+        
+        return new PageResult(page.getTotal(), voList);
     }
 }

@@ -171,16 +171,12 @@
         const sel = document.getElementById('parentId');
         // 只显示一级分类作为父级选项，且类型要匹配
         const parentCategories = state.categories.filter(x => {
-            const typeMatch = currentType === '' || 
-                (currentType === '支出' && x.type === 0) ||
-                (currentType === '收入' && x.type === 1) ||
-                (currentType === '转账' && x.type === 2);
+            const typeMatch = currentType === '' || x.categoryType === currentType;
             return x.level === 1 && typeMatch;
         });
         const opts = ['<option value="">无（作为一级分类）</option>']
             .concat(parentCategories.map(x => {
-                const typeName = x.type === 0 ? '支出' : (x.type === 1 ? '收入' : '转账');
-                return `<option value="${x.id}" ${x.id==selectedId?'selected':''}>${x.categoryName} (${typeName})</option>`;
+                return `<option value="${x.id}" ${x.id==selectedId?'selected':''}>${x.name} (${x.categoryType})</option>`;
             }));
         sel.innerHTML = opts.join('');
     }
@@ -195,14 +191,13 @@
     function render() {
         const tbody = document.getElementById('tbody');
         const rows = state.list.map(x => {
-            const parent = state.categories.find(it => it.id === x.parentId) || {};
             return `
                 <tr>
                     <td>${x.id||''}</td>
-                    <td>${x.categoryName||''}</td>
-                    <td>${x.type === 0 ? '支出' : x.type === 1 ? '收入' : '转账'}</td>
+                    <td>${x.name||''}</td>
+                    <td>${x.categoryType||''}</td>
                     <td>${x.level||''}</td>
-                    <td>${parent.categoryName||''}</td>
+                    <td>${x.parentName||''}</td>
                     <td>${x.isDefault?'是':'否'}</td>
                     <td>${x.sort||''}</td>
                     <td>${x.createTime ? x.createTime.split('T')[0] : ''}</td>
@@ -281,15 +276,12 @@
             return;
         }
         
-        // 转换type为中文
-        const categoryType = item.type === 0 ? '支出' : (item.type === 1 ? '收入' : '转账');
-        
-        renderParentOptions(item.parentId || '', categoryType);
+        renderParentOptions(item.parentId || '', item.categoryType);
         const form = document.getElementById('form-edit');
         setFormValues(form, {
             id: item.id,
-            name: item.categoryName,
-            categoryType: categoryType,
+            name: item.name,
+            categoryType: item.categoryType,
             parentId: item.parentId || '',
             isDefault: item.isDefault || '0',
             sort: item.sort || 100
@@ -314,7 +306,7 @@
             return;
         }
         
-        if (!confirm(`确认删除分类"${item.categoryName}"？此操作不可恢复。`)) return;
+        if (!confirm(`确认删除分类"${item.name}"？此操作不可恢复。`)) return;
         
         fetchJson(`${apiBase}/${id}`, { method: 'DELETE' })
             .then(result => {
